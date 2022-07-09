@@ -79,12 +79,12 @@ On the command line, khutzpa currently at leaset partially supports these option
     * Can occur anywhere
     * Means we're running the Jasmine [stand](https://jasmine.github.io/pages/getting_started.html)-<a href="https://www.testingdocs.com/getting-started-with-jasmine-standalone/" style="color:orange">alone</a> test suite and serving the results in a browser.
 * `/coverage`
-    * This is super lazy. You can have any color of coverage you want, as long as it's...
     * Can occur anywhere
-    * Run in Chrome (Chrome must be installed)
-    * Is output to html
-    * Is opened in your default browser using a utility server
-        * currently even the server's port is static. I think it is or was 3000.
+    * This is super lazy. You can have any color of coverage you want, as long as it's...
+        * Run in Chrome (Chrome must be installed)
+        * Is output to html
+        * Is opened in your default browser using a utility server
+            * currently even the server's port is static. I think it is or was 3000.
 
 
 
