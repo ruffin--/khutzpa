@@ -1,0 +1,29 @@
+{
+    "Framework": "jasmine",
+    "FrameworkVersion": "3",
+    "Engine": "JSDom",
+    "RootReferencePathMode": "SettingsFileDirectory",
+    "TestFileTimeout": 10000,
+    "CodeCoverageTimeout": 10000,
+    "Server": {
+        "Enabled": true,
+        "RootPath": "../"
+    },
+    "References": [
+        {
+            "Path": "/fakeCode/",
+            "Includes": ["*.js"],
+            "Excludes": ["/**/*.tests.js", "*.test.js"]
+        }
+        // { "Path": "/fakeCode/double.js" }
+    ],
+    "Tests": [
+        {
+            // remember this is relative to the json file's parent.
+            "Path": "/",
+            "Includes": "/**/*.test.js"
+        }
+    ],
+    "CodeCoverageIncludes": ["**/*.js"],
+    "CodeCoverageExcludes": ["*.test.js"]
+}
