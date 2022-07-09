@@ -1,0 +1,67 @@
+{
+    "parserOptions": {
+        "ecmaVersion": 6
+    },
+    "rules": {
+        "array-bracket-spacing": 2,
+        "block-spacing": [2, "always"],
+        "brace-style": [2, "1tbs", { "allowSingleLine": true }],
+        "camelcase": [2, { "properties": "always" }],
+        "curly": 2,
+        "default-case": 2,
+        "dot-notation": 2,
+        "eqeqeq": 2,
+
+        "indent": [
+            "error",
+            4,
+            { "SwitchCase": 1, "ignoredNodes": ["ConditionalExpression"] }
+        ],
+
+        "key-spacing": [
+            2,
+            {
+                "beforeColon": false,
+                "afterColon": true
+            }
+        ],
+        "max-len": [2, 160, 2, { "ignoreUrls": true }],
+        "new-cap": [2, {}],
+        "no-console": 0,
+        "no-else-return": 2,
+        "no-eval": 2,
+        "no-multi-spaces": 2,
+        "no-multiple-empty-lines": [2, { "max": 2 }],
+        "no-shadow": 2,
+        "no-trailing-spaces": 2,
+        "no-unused-expressions": 2,
+        "no-unused-vars": [2, { "args": "none" }],
+        "no-invalid-this": 2,
+        "no-undef": "error",
+        "object-curly-spacing": [2, "always"],
+        "padded-blocks": [2, "never"],
+        "quotes": [2, "double", { "allowTemplateLiterals": true, "avoidEscape": true }],
+        "semi": [2, "always"],
+        "space-before-blocks": 2,
+        "space-before-function-paren": [
+            2,
+            {
+                "anonymous": "always",
+                "named": "never"
+            }
+        ],
+        "valid-typeof": 2
+    },
+    "env": {
+        "es6": true,
+        "browser": true,
+        "node": false,
+        "jasmine": true
+    },
+    "globals": {
+        "require": true,
+        "module": true,
+        "process": true,
+        "Buffer": true
+    }
+}
