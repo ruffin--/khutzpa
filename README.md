@@ -16,7 +16,9 @@ Currently khutzpa (this pretender to the throne) *does not have a Visual Studio 
 
 khutzpa is designed to be run from the command line and/or using the [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner). More instructions below. Coolest part is that it works on macOS too. (Chutzpah.exe (duh, though yes, [mono](https://www.mono-project.com/docs/about-mono/supported-platforms/macos/), [maui](https://docs.microsoft.com/en-us/dotnet/maui/what-is-maui), I get it) does not.)
 
-I am hopeful we can steal the code to the extension and swap out Chutzpah.exe with khutzpa and be done, but I want this working in VS Code and my builds first.
+Note: I am hopeful we can steal the code to the VS Classic extension and swap out Chutzpah.exe with khutzpa and have an extension working, but I want this working in VS Code and my builds before we get VS Classic support rolling.
+
+
 
 ## Usage
 
@@ -33,16 +35,17 @@ The Chutzpah.json config files are described in detail [at the Chutzpah project]
 Run a single test file in the Jasmine standalone runner, served by a node webserver.
 
 ```
-> khutzpa /Applications/www/khutzpa/tests/fakeSite/ /openInBrowser
+> khutzpa /usr/local/lib/node_modules/khutzpa/tests/fakeSite/ /openInBrowser
 ```
 
 What the Chutzpah Runner probably would've sent:
 
 ```
-> khutzpa /Applications/www/khutzpa/tests/fakeSite/fakeTests/ /engine chrome /browserArgs --disable-web-security --user-data-dir=/Users/yourName/ChromeDevSession /openInBrowser /trace /debug
+> khutzpa /usr/local/lib/node_modules/khutzpa/tests/fakeSite/ /engine chrome /browserArgs --disable-web-security --user-data-dir=/Users/yourName/ChromeDevSession /openInBrowser /trace /debug
 ```
 
-(Most of those options aren't currently supported. You get what I'm saying.)
+(Heads up! Most of the options the Runner sends aren't currently supported by khutzpa.)
+
 
 Run an Istanbul test coverage report for every file in the directory `fakeTests`:
 
@@ -50,15 +53,65 @@ Run an Istanbul test coverage report for every file in the directory `fakeTests`
 > khutzpa "/Applications/www/khutzpa/tests/fakeSite/fakeTests/" /coverage
 ```
 
-[will correct this as I really use it]
-
-
 
 
 ### VS Code usage with Chutzpah Runner
 
-[will put this up after I've tested it a little]
+#### macOS
 
+This takes a little work. There are two ways to do this -- use the shell file that came with the install or make a new one somewhere you can access. Let's start with The Easy Way, use the one that came with your khutzpa install. We're going to hope it installed in the normal place, but if you're using nvm it might be somewhere else and these instructions won't work.
+
+Okay, well, first I suppose you need to install the [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) extension in VS Code if you haven't.
+
+If you haven't installed khutzpa globally, do that with (on macOS) `sudo npm install khutzpa -g`
+
+Now open a Terminal and type this:
+
+```
+sudo chmod 755 /usr/local/lib/node_modules/khutzpa/macKhutzpa.sh
+```
+
+This allows us to use that file as if it were an application.
+
+(**NOTE:** If you receive a message saying "No such file or directory", you probably have npm global installs in a nonstandard location. [Open an issue](https://github.com/ruffin--/khutzpa/issues) if you'd like and we can take a look.)
+
+Now open VS Code. Hit `Cmd-,` to open your preferences. Search for `Chutzpah`.
+
+In the entry for "Chutzpahrunner: Exe Path", enter that same file with its full path:
+
+`/usr/local/lib/node_modules/khutzpa/macKhutzpa.sh`
+
+![picture of Exe Path setting UI with correct value](./docs/macOsExePath.png)
+
+Save settings and close the tab.
+
+Now things should work! Right-click a file or folder in VS Code's Explorer and run some tests!
+
+Note that khutzpa [purposefully] opens a new Terminal window ***that must be closed or the app quit*** before you can run it again. In the future, I may reuse the express server or check to see if it neds to serve on new ports.
+
+---
+
+One known limitation: Right now, the runner is sending a filename for the **coverage** output that khutzpa is ignoring. You can see this under [Chutzpah's command-line options](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options).
+
+The options, which you can view in VS Code's Output window, will look like this:
+
+```
+/coveragehtml /var/folders/ry/9v79xg1j7n9fzdfygqmb4q180000gp/T/coverage-4yOxQ2.html
+```
+
+Right now, khutzpa is ignoring that option and opening the coverage html separately.
+
+Probably not a _huge_ deal, but do note that means you'll have two html files open in your browser with each coverage fun for now, one from the Chutzpah Runner & one from khutzpa, and the one from the Runner will be empty.
+
+
+#### Windows
+
+[will add after I test it out & add it]
+
+
+#### Linux
+
+[It might be a while before I set this up. Let me know if you do it! Should be reasonably straightforward.]
 
 
 
@@ -105,7 +158,8 @@ This is an alpha, after all. That said, khutzpa likely won't support all of them
 
 Note that there's a sample `Chutzpah.json` file in the `test` folder.
 
--------
+
+
 
 ## Background
 
