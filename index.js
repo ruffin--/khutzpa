@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const fs = require("fs");
 const fsPromises = fs.promises;
 const nodePath = require("node:path");
@@ -217,9 +219,7 @@ function cmdCallHandler(filePath, expressPort, actionType) {
     }
 }
 
-module.exports = {
-    default: cmdCallHandler,
-};
+module.exports = cmdCallHandler;
 
 //----------------------------
 // Run Chutzpah in Chrome
