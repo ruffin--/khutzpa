@@ -87,7 +87,7 @@ Save settings and close the tab.
 
 Now things should work! Right-click a file or folder in VS Code's Explorer and run some tests!
 
-Note that khutzpa [purposefully] opens a new Terminal window ***that must be closed or the app quit*** before you can run it again. In the future, I may reuse the express server or check to see if it neds to serve on new ports.
+Note that khutzpa [purposefully] opens a new Terminal window ***that must be closed or the app quit*** before you can run it again. In the future, I may reuse the express server or have khutzpa check to see if the port it wants to use is already in use. Probably the former.
 
 ---
 
@@ -114,10 +114,13 @@ Probably not a _huge_ deal, but do note that means you'll have two html files op
 [It might be a while before I set this up. Let me know if you do it! Should be reasonably straightforward.]
 
 
+-----
+
+
 
 ### Currently supported options
 
-**WARNING:** For now, we're, um, taking a "any option you want, [as long as it's black](http://oplaunch.com/blog/2015/04/30/the-truth-about-any-color-so-long-as-it-is-black/)" approach. We're supporting a stark subset of [command-line](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options) and [config](https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File) options.
+**WARNING:** For now, we're, um, taking an "any option you want, [as long as it's black](http://oplaunch.com/blog/2015/04/30/the-truth-about-any-color-so-long-as-it-is-black/)" approach. We're supporting a stark subset of [command-line](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options) and [config](https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File) options.
 
 
 
@@ -167,7 +170,7 @@ Note that there's a sample `Chutzpah.json` file in the `test` folder.
 
 [Chutzpah](http://mmanela.github.io/chutzpah/) was/is a command-line wrapper for running Jasmine testing and [Blanket](https://github.com/alex-seville/blanket) test coverage tools for JavaScript projects.
 
-The good thing about Chutzpah is that it's a wrapper and it's insanely easy to set up even without knowledge of the tools it uses.
+The good thing about Chutzpah is that it's a wrapper and it's exceptionally easy to set up even without knowledge of the tools it uses.
 
 The bad thing about Chutzpah is that it's a wrapper and if the tools it's wrapped go stale, it's insanely difficult to update them.
 
