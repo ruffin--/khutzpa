@@ -126,7 +126,7 @@ Probably not a _huge_ deal, but do note that means you'll have two html files op
 
 #### Currently supported command line options
 
-On the command line, khutzpa currently at leaset partially supports these options:
+On the command line, khutzpa currently at least partially supports these options:
 
 * File path
     * This can be a directory or a single specific test file.
@@ -170,7 +170,7 @@ Note that there's a sample `Chutzpah.json` file in the `test` folder.
 
 [Chutzpah](http://mmanela.github.io/chutzpah/) was/is a command-line wrapper for running Jasmine testing and [Blanket](https://github.com/alex-seville/blanket) test coverage tools for JavaScript projects.
 
-The good thing about Chutzpah is that it's a wrapper and it's exceptionally easy to set up even without knowledge of the tools it uses.
+The good thing about Chutzpah is that it's a wrapper around a complex set of tools making it exceptionally easy to set them up even without a thorough knowledge of the tools it uses.
 
 The bad thing about Chutzpah is that it's a wrapper and if the tools it's wrapped go stale, it's insanely difficult to update them.
 
