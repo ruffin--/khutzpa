@@ -7,6 +7,7 @@ const nodePath = require("node:path");
 const Os = require("os");
 
 const isWindows = Os.platform() === "win32";
+console.log("isWindows? " + isWindows);
 
 // mostly https://stackoverflow.com/a/56188301/1028230
 function sniffEncoding(filePath) {
@@ -41,7 +42,7 @@ function getFileContents(filePath) {
                 ? contents.replace(/^\uFEFF/, "")
                 : contents;
 
-        return contents.replace(/\/\/.*\n/g, "");
+        return contents.replace(/\/\/.*[\r\n]+/g, "");
     });
 }
 
@@ -51,10 +52,11 @@ function getAllFilePaths(dirPath, arrayOfFiles) {
     arrayOfFiles = arrayOfFiles || [];
 
     files.forEach(function (file) {
-        if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-            arrayOfFiles = getAllFilePaths(nodePath.join(dirPath, file), arrayOfFiles);
+        var fullPath = nodePath.join(dirPath, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+            arrayOfFiles = getAllFilePaths(fullPath, arrayOfFiles);
         } else {
-            arrayOfFiles.push(nodePath.join(dirPath, file));
+            arrayOfFiles.push(fullPath);
         }
     });
 
@@ -80,7 +82,7 @@ function handleChutzpahSelector(selector, jsonFileParent) {
             // Taking off the trailing "/" so that when we use it to replace
             // full paths, the relative paths still start with /
             // That's wack for single files, but we have a fix for that coming...
-            if (selectorFullPath.endsWith("/")) {
+            if (selectorFullPath.endsWith("/") || selectorFullPath.endsWith("\\")) {
                 selectorFullPath = selectorFullPath.substring(
                     0,
                     selectorFullPath.length - 1
@@ -102,6 +104,7 @@ function handleChutzpahSelector(selector, jsonFileParent) {
             // But I could see doing it either way.
             // Probably is minimatch acts differently with each, though
             // they're functionally equivalent.
+            // TODO: Windows solution
             // Let's be offensive for now:
             if (!selector.Path.startsWith("/")) {
                 throw `Paths must start with /
@@ -166,8 +169,10 @@ function handleChutzpahSelector(selector, jsonFileParent) {
         if (pathIsDir) {
             // Now let's put the full paths back (we'll remove the original
             // root directory before we write to an html file).
-            theseFiles = theseFiles.map(
-                (x) => `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
+            theseFiles = theseFiles.map((x) =>
+                isWindows
+                    ? `${selectorFullPath}${x.startsWith("\\") ? x : "\\" + x}`
+                    : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
             );
         } else {
             // we still want a full path, so append the root to single
@@ -219,7 +224,10 @@ function getConfigInfo(chutzpahJsonFullPath, originalFileParameter) {
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
     var singleTestFile =
-        originalFileParameter.lastIndexOf(".") > originalFileParameter.lastIndexOf("/")
+        originalFileParameter.lastIndexOf(".") >
+        (isWindows
+            ? originalFileParameter.lastIndexOf("/")
+            : originalFileParameter.lastIndexOf("\\"))
             ? originalFileParameter
             : false;
 
