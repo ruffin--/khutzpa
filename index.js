@@ -33,6 +33,10 @@ var specRunnerTemplate = `<!DOCTYPE html>
 `;
 
 function findChutzpahJson(startPath) {
+    if (!fs.existsSync(startPath)) {
+        throw `Invalid start path: ${startPath}`;
+    }
+
     // ????: Should we care about other types? Should we
     // be ready for any extension? This is kinda offensively programmed.
     var possibleDir = startPath.toLowerCase().endsWith(".js")
@@ -46,7 +50,11 @@ function findChutzpahJson(startPath) {
         if (fs.existsSync(tryHere)) {
             foundChutzpahJson = tryHere;
         } else {
-            possibleDir = nodePath.dirname(possibleDir);
+            var newPossibleDir = nodePath.dirname(possibleDir);
+            if (newPossibleDir === possibleDir) {
+                throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
+            }
+            possibleDir = newPossibleDir;
             // console.log("Next dir up: " + possibleDir);
         }
     }
