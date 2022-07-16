@@ -260,12 +260,11 @@ function getConfigInfo(originalTestPath) {
     console.log("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
+    var slash = isWindows ? "\\" : "/";
 
     var singleTestFile =
-        originalTestPath.lastIndexOf(".") >
-        (isWindows
-            ? originalTestPath.lastIndexOf("/")
-            : originalTestPath.lastIndexOf("\\"))
+        !originalTestPath.endsWith(slash) &&
+        originalTestPath.lastIndexOf(".") > originalTestPath.indexOf(slash)
             ? originalTestPath
             : false;
 
