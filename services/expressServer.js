@@ -15,11 +15,21 @@ function startRunner(homeDirPath, runnerSource) {
     app.use(
         "/jasmine",
         express.static(
-            nodePath.join(__dirname, "jasmine-standalone-4.1.1", "lib", "jasmine-4.1.1")
+            (function () {
+                var root = nodePath.join(
+                    __dirname,
+                    "..",
+                    "jasmine-standalone-4.1.1",
+                    "lib",
+                    "jasmine-4.1.1"
+                );
+                // console.log(root);
+                return root;
+            })()
         )
     );
 
-    console.log(homeDirPath);
+    console.log("Express home dir: " + homeDirPath);
     app.use("/", express.static(homeDirPath));
 
     // app.listen(port, function () {

@@ -9,6 +9,36 @@ const Os = require("os");
 const isWindows = Os.platform() === "win32";
 console.log("isWindows? " + isWindows);
 
+function findChutzpahJson(startPath) {
+    if (!fs.existsSync(startPath)) {
+        throw `Invalid start path: ${startPath}`;
+    }
+
+    // ????: Should we care about other types? Should we
+    // be ready for any extension? This is kinda offensively programmed.
+    var possibleDir = startPath.toLowerCase().endsWith(".js")
+        ? nodePath.dirname(startPath)
+        : startPath;
+
+    var foundChutzpahJson = undefined;
+    while (!foundChutzpahJson) {
+        console.log("checking: " + possibleDir);
+        var tryHere = nodePath.join(possibleDir, "Chutzpah.json");
+        if (fs.existsSync(tryHere)) {
+            foundChutzpahJson = tryHere;
+        } else {
+            var newPossibleDir = nodePath.dirname(possibleDir);
+            if (newPossibleDir === possibleDir) {
+                throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
+            }
+            possibleDir = newPossibleDir;
+            // console.log("Next dir up: " + possibleDir);
+        }
+    }
+
+    return foundChutzpahJson;
+}
+
 // mostly https://stackoverflow.com/a/56188301/1028230
 function sniffEncoding(filePath) {
     /*eslint-disable new-cap */
@@ -65,6 +95,8 @@ function getAllFilePaths(dirPath, arrayOfFiles) {
 
 // Looks like I might need to keep track of platform (Windows vs. *NIX)
 function handleChutzpahSelector(selector, jsonFileParent) {
+    console.log({ title: "handleChutzpahSelector", selector, jsonFileParent });
+
     if (!selector.Path) {
         selector.Path = jsonFileParent;
     }
@@ -137,6 +169,12 @@ function handleChutzpahSelector(selector, jsonFileParent) {
         }
 
         // Trying to solve the minimatch starting slash issue.
+        // TODO: You may also need to solve the asterisk interpretation issue.
+        // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
+        // { "Includes": ["*test1*"] },
+        // "Includes all tests that contain test1 in its path. This is in glob format."
+        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        // If that's accurate, that's not how minimatch works.
         selector.Includes.forEach(function (includePattern) {
             var noSlashTheseFiles = theseFiles.map((x) => x.substring(1));
 
@@ -205,37 +243,37 @@ ${fullPath}`
 
 // var jsonFilePath = "./testChutzpah.json";
 
-// TODO: If it's a coverage call with a single file that's NOT a test file,
-// we might want to just run coverage for that one, though we include the rest.
-function getConfigInfo(chutzpahJsonFullPath, originalFileParameter) {
-    if (!chutzpahJsonFullPath) {
-        throw "No chutzpahJsonPath given!";
+function getConfigInfo(originalTestPath) {
+    var configFilePath = findChutzpahJson(originalTestPath);
+
+    if (!configFilePath) {
+        throw "invalid/empty config file";
     }
 
-    if (chutzpahJsonFullPath.startsWith(".")) {
-        throw "Path to Chutzpah.json must be absolute. This starts with a dot.";
+    if (configFilePath.startsWith(".")) {
+        throw (
+            "Path to Chutzpah.json must be absolute. This starts with a dot: " +
+            configFilePath
+        );
     }
 
-    if (!originalFileParameter) {
-        originalFileParameter = "";
-    }
-
-    var jsonFilePath = nodePath.normalize(chutzpahJsonFullPath);
+    console.log("Reading Chutzpah config: " + configFilePath);
+    var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
     var singleTestFile =
-        originalFileParameter.lastIndexOf(".") >
+        originalTestPath.lastIndexOf(".") >
         (isWindows
-            ? originalFileParameter.lastIndexOf("/")
-            : originalFileParameter.lastIndexOf("\\"))
-            ? originalFileParameter
+            ? originalTestPath.lastIndexOf("/")
+            : originalTestPath.lastIndexOf("\\"))
+            ? originalTestPath
             : false;
 
     // If you execute from an "inner" directory, don't include test files
     // outside of that path. (*DO* include all ref files, though.)
     var limitingDir = singleTestFile
-        ? nodePath.dirname(originalFileParameter)
-        : originalFileParameter;
+        ? nodePath.dirname(originalTestPath)
+        : originalTestPath;
 
     return getFileContents(jsonFilePath).then(function (chutzpahJson) {
         var chutzpahConfigObj = JSON.parse(chutzpahJson);
@@ -298,6 +336,8 @@ function getConfigInfo(chutzpahJsonFullPath, originalFileParameter) {
         }
 
         return {
+            originalTestPath,
+            configFilePath,
             jsonFileParent,
             allRefFilePaths,
             specFiles,
@@ -308,4 +348,5 @@ function getConfigInfo(chutzpahJsonFullPath, originalFileParameter) {
 
 module.exports = {
     getConfigInfo,
+    findChutzpahJson, // okay, this is just here for testing. That's bad.
 };
