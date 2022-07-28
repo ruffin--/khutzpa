@@ -5,6 +5,7 @@ const minimatch = require("minimatch");
 // NOTE: node:path requires node v16+
 const nodePath = require("node:path");
 const Os = require("os");
+// const { config } = require("process");
 
 const isWindows = Os.platform() === "win32";
 console.log("isWindows? " + isWindows);
@@ -241,7 +242,49 @@ ${fullPath}`
     });
 }
 
-// var jsonFilePath = "./testChutzpah.json";
+function handleAggressiveStar(configInfo) {
+    var ocdDryPropNames = ["References", "Tests"];
+    var ocdDryArrayNames = ["Includes", "Excludes"];
+
+    ocdDryPropNames.forEach(function (refsOrTests) {
+        if (Array.isArray(configInfo[refsOrTests])) {
+            configInfo[refsOrTests].forEach((singleEntry) => {
+                ocdDryArrayNames.forEach((pathArrayName) => {
+                    if (Array.isArray(singleEntry[pathArrayName])) {
+                        var toAdd = [];
+                        singleEntry[pathArrayName].forEach((singlePath) => {
+                            if (
+                                singlePath.startsWith("*") &&
+                                !singlePath.startsWith("**")
+                            ) {
+                                // AggressiveStar means a value of "*.js" looks for "*.js" in EVERY folder,
+                                // recurisvely rather than simply at the root level folder.
+                                // Some glob evaluators seem to do this and some don't. (???)
+                                // TODO: Add github issue link.
+                                var allFoldersSelector = "**/" + singlePath;
+                                if (
+                                    !singleEntry[pathArrayName].find(
+                                        (x) => x === allFoldersSelector
+                                    )
+                                ) {
+                                    console.log(
+                                        `GOING AGGRESSIVE!!! ${refsOrTests} - ${singlePath}`
+                                    );
+                                    toAdd.push(allFoldersSelector);
+                                }
+                            }
+                        });
+
+                        singleEntry[pathArrayName] =
+                            singleEntry[pathArrayName].concat(toAdd);
+                    }
+                });
+            });
+        } else {
+            console.log("Didn't find a " + refsOrTests);
+        }
+    });
+}
 
 function getConfigInfo(originalTestPath) {
     var configFilePath = findChutzpahJson(originalTestPath);
@@ -278,10 +321,15 @@ function getConfigInfo(originalTestPath) {
         var chutzpahConfigObj = JSON.parse(chutzpahJson);
         console.log("read chutzpah json", chutzpahConfigObj);
 
+        if (chutzpahConfigObj.AggressiveStar) {
+            handleAggressiveStar(chutzpahConfigObj);
+        }
+
         var allRefFilePaths = [];
-        chutzpahConfigObj.References.forEach(function (ref) {
+
+        chutzpahConfigObj.References.forEach(function (singleReferenceEntry) {
             allRefFilePaths = allRefFilePaths.concat(
-                handleChutzpahSelector(ref, jsonFileParent)
+                handleChutzpahSelector(singleReferenceEntry, jsonFileParent)
             );
         });
 
