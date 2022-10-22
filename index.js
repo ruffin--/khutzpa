@@ -52,8 +52,8 @@ var actionTypes = {
 };
 
 if (require.main === module) {
-    // First two are always "Node" and the path to this app.
-    // Trash those.
+    // First two arguments for a node process are always "Node"
+    // and the path to this app. Trash those.
     const myArgs = process.argv.slice(2);
     console.log("myArgs: ", myArgs);
 
