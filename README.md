@@ -32,22 +32,22 @@ The Chutzpah.json config files are described in detail [at the Chutzpah project]
 
 ### Examples from the command line
 
-Run a single test file in the Jasmine standalone runner, served by a node webserver.
+To run tests in a specific folder with the Jasmine standalone runner, served by a node webserver:
 
 ```
 > khutzpa /usr/local/lib/node_modules/khutzpa/tests/fakeSite/ /openInBrowser
 ```
 
-What the Chutzpah Runner probably would've sent:
+Note that this is What wthe Chutzpah Runner probably would've sent:
 
 ```
 > khutzpa /usr/local/lib/node_modules/khutzpa/tests/fakeSite/ /engine chrome /browserArgs --disable-web-security --user-data-dir=/Users/yourName/ChromeDevSession /openInBrowser /trace /debug
 ```
 
-(Heads up! Most of the options the Runner sends aren't currently supported by khutzpa.)
+(Aka, "Heads up! Most of the options the Runner sends aren't currently supported by khutzpa.")
 
 
-Run an Istanbul test coverage report for every file in the directory `fakeTests`:
+To run an Istanbul test coverage report for every file in the directory `fakeTests`:
 
 ```
 > khutzpa "/Applications/www/khutzpa/tests/fakeSite/fakeTests/" /coverage
@@ -101,7 +101,9 @@ The options, which you can view in VS Code's Output window, will look like this:
 
 Right now, khutzpa is ignoring that option and opening the coverage html separately.
 
-Probably not a _huge_ deal, but do note that means you'll have two html files open in your browser with each coverage fun for now, one from the Chutzpah Runner & one from khutzpa, and the one from the Runner will be empty.
+Probably not a _huge_ deal, but do note that means you'll have two html files open in your browser with each coverage run for now, one from the Chutzpah Runner (that `coverage-4yOxQ2.html` represents) & one from khutzpa.
+
+The weirdly named one from the Runner will be empty. Again, not super high on the alpha fix list, but we'll get there.
 
 
 #### Windows
