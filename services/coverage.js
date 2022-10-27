@@ -5,8 +5,7 @@ const nodePath = require("node:path");
 const opener = require("opener");
 const expressServer = require("./expressServer");
 
-// taken from the my.conf.js file
-const createConfig = function (overrides) {
+const createKarmaConfig = function (overrides) {
     var baseConfig = {
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
@@ -88,12 +87,12 @@ files: [
 ],
 */
 function startKarma(overrides) {
-    var config = createConfig(overrides);
+    var karmaConfig = createKarmaConfig(overrides);
 
     return karma.config
         .parseConfig(
             null,
-            config,
+            karmaConfig,
 
             // In most cases, parseOptions.throwErrors = true should also be set.
             // This disables process exiting and allows errors to result in rejected promises.
@@ -101,10 +100,12 @@ function startKarma(overrides) {
             { promiseConfig: true, throwErrors: true }
         )
         .then(
-            (karmaConfig) => {
+            (parsedKarmaConfig) => {
                 // fwiw
                 // http://karma-runner.github.io/6.4/dev/public-api.html
-                const server = new Server(karmaConfig, function doneCallback(exitCode) {
+                const server = new Server(parsedKarmaConfig, function doneCallback(
+                    exitCode
+                ) {
                     console.log("Karma has exited with " + exitCode);
                     console.log(arguments);
 
@@ -166,6 +167,40 @@ m: ${statsObj.mtimeMs},
         );
 }
 
+function runKarmaCoverage(configInfo) {
+    // The config object gives back a collection of all refs (not tests)
+    // in allRefFilePaths and the tests in specFiles.
+    // karma files wants everything... I think... and then everything but the
+    // test for the coverage preprocessor.
+    // So first let's put the two together.
+    var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+
+    // Now we need an object literal with each file to cover to tell karma
+    // to use the coverage preprocessor. We could use patterns, but this is
+    // much more straightforward (if not efficient -- though I suspect this
+    // means karma is doing less lifting and it doesn't matter).
+    var preprocessObj = {};
+    configInfo.coverageFiles.forEach((fileToCover) => {
+        preprocessObj[fileToCover] = ["coverage"];
+    });
+
+    var overrides = {
+        port: 9876,
+        basePath: configInfo.basePath,
+        // files: [{ pattern: "**/*.js", nocache: true }],
+        // string-only is equivalent to...
+        // equal to {pattern: theStringPath, watched: true, served: true, included: true}
+        files: allFiles,
+        // everything but the tests.
+        // "**/!(*test).js": ["coverage"],
+        preprocessors: preprocessObj,
+    };
+
+    console.log("config overrides for karma:", overrides);
+
+    return startKarma(overrides);
+}
+
 if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
@@ -180,5 +215,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-    startKarma,
+    runKarmaCoverage,
 };

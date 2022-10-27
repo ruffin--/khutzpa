@@ -5,11 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Program",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/index.js",
+            // "program": "${workspaceFolder}/tests/testChutzpahReader.js",
+            "args": [
+                "C:\\projects\\khutzpa\\tests\\fakeSite\\fakeTests",
+                "/openInBrowser"
+            ]
             // "args": [
             // "C:\\projects\\khutzpa\\tests\\fakeSite\\fakeTests",
             // "/Applications/www/khutzpa/tests/fakeSite/fakeTests/",
@@ -24,16 +29,16 @@
             // "/trace",
             // "/debug"
             // ]
-            "args": [
-                // "/Applications/www/khutzpa/tests/fakeSite/",
-                "C:\\projects\\khutzpa\\tests\\fakeSite\\fakeTests",
-                "/engine chrome",
-                "/coverage",
-                "/coveragehtml",
-                "/var/folders/ry/9v79xg1j7n9fzdfygqmb4q180000gp/T/coverage-q61CXV.html",
-                "/trace",
-                "/debug"
-            ]
+            // "args": [
+            //     // "/Applications/www/khutzpa/tests/fakeSite/",
+            //     "C:\\projects\\khutzpa\\tests\\fakeSite\\fakeTests",
+            //     "/engine chrome",
+            //     "/coverage",
+            //     "/coveragehtml",
+            //     "/var/folders/ry/9v79xg1j7n9fzdfygqmb4q180000gp/T/coverage-q61CXV.html",
+            //     "/trace",
+            //     "/debug"
+            // ]
         }
     ]
 }
