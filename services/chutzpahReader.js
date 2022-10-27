@@ -261,40 +261,18 @@ function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
             // Otherwise "*.js" will never match anything, since we
             // have full paths in the getAllFilePaths results.
             theseFiles = theseFiles.map((x) => x.replace(selectorFullPath, ""));
-        } else {
-            // I'm not sure how to handle single files in the root.
-            // Seems they should start with `/` to match the logic.
-            // But I could see doing it either way.
-            // Probably is minimatch acts differently with each, though
-            // they're functionally equivalent.
-            // TODO: Windows solution
-            // Let's be offensive for now:
-            if (!selector.Path.startsWith("/")) {
-                throw `Paths must start with /
-    ---- #${selector.Path}#`;
-            }
-            theseFiles = [selector.Path];
-        }
 
-        theseFiles = theseFiles || [];
+            theseFiles = theseFiles || [];
 
-        console.log(
-            `all files for ${nth}th ${type} selector before filtering: 
+            console.log(`all files for ${nth}th ${type} selector before filtering: 
     ${selectorFullPath}
-${JSON.stringify(theseFiles, null, "  ")}
-
-`
-        );
-
-        theseFiles = findAllIncludes(selector, theseFiles);
-        theseFiles = removeAllExcludes(selector, theseFiles);
-
-        console.log(`and after filtering:
 ${JSON.stringify(theseFiles, null, "  ")}
 
 `);
 
-        if (pathIsDir) {
+            theseFiles = findAllIncludes(selector, theseFiles);
+            theseFiles = removeAllExcludes(selector, theseFiles);
+
             // Now let's put the full paths back (we'll remove the original
             // root directory before we write to an html file).
             theseFiles = theseFiles.map((x) =>
@@ -302,10 +280,25 @@ ${JSON.stringify(theseFiles, null, "  ")}
                     ? `${selectorFullPath}${x.startsWith("\\") ? x : "\\" + x}`
                     : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
             );
+
+            console.log(`and after filtering:
+            ${JSON.stringify(theseFiles, null, "  ")}
+                        
+`);
         } else {
-            // we still want a full path, so append the root to single
-            // file selectors.
-            theseFiles = theseFiles.map((x) => jsonFileParent + x);
+            // I'm not sure how to handle single files in the root.
+            // Seems they should start with `/` to match the logic.
+            // But I could see doing it either way.
+            // Problem is minimatch acts differently with each, though
+            // they're functionally equivalent.
+            //
+            // TODO: Windows solution
+            // Let's be offensive for now:
+            if (!selector.Path.startsWith("/")) {
+                throw `Paths must start with / ---- #${selector.Path}#`;
+            }
+
+            theseFiles = [jsonFileParent + selector.Path];
         }
 
         return theseFiles;
@@ -426,6 +419,17 @@ function getConfigInfo(originalTestPath) {
     });
 }
 
+function mergeAndDedupe(parentCollection, newFiles) {
+    // let's standardize on *NIX paths.
+    // TODO: I think there's a node function for this.
+    newFiles.forEach((x, i) => (newFiles[i] = x.replace(/\\/g, "/")));
+    var filesForSelectorDeduped = newFiles.filter(
+        (x) => parentCollection.indexOf(x) === -1
+    );
+
+    return parentCollection.concat(filesForSelectorDeduped);
+}
+
 function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     if (chutzpahConfigObj.AggressiveStar) {
         handleAggressiveStar(chutzpahConfigObj);
@@ -434,20 +438,29 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     var allRefFilePaths = [];
 
     chutzpahConfigObj.References.forEach(function (singleReferenceEntry, i) {
-        allRefFilePaths = allRefFilePaths.concat(
-            handleChutzpahSelector(singleReferenceEntry, jsonFileParent, "Reference", i)
+        var filesForSelector = handleChutzpahSelector(
+            singleReferenceEntry,
+            jsonFileParent,
+            "Reference",
+            i
         );
+
+        allRefFilePaths = mergeAndDedupe(allRefFilePaths, filesForSelector);
     });
 
     // ensure they all exist
+    // Looks like even full Windows paths work here with foreward slashes. Weird.
     allRefFilePaths = filterNonexistentPaths(allRefFilePaths, "References");
+    allRefFilePaths = allRefFilePaths.map((x) =>
+        x.replace(jsonFileParent.replace(/\\/g, "/"), "")
+    );
 
     var specFiles = [];
     if (!singleTestFile) {
         chutzpahConfigObj.Tests.forEach(function (ref, i) {
-            specFiles = specFiles.concat(
-                handleChutzpahSelector(ref, jsonFileParent, "Test", i)
-            );
+            var filesForSelector = handleChutzpahSelector(ref, jsonFileParent, "Test", i);
+
+            specFiles = mergeAndDedupe(specFiles, filesForSelector);
         });
     } else {
         // var parentAtStart = `^${jsonFileParent}`;
@@ -458,6 +471,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     }
 
     specFiles = filterNonexistentPaths(specFiles, "Test (spec files)");
+    specFiles = specFiles.map((x) => x.replace(jsonFileParent.replace(/\\/g, "/"), ""));
 
     if (!specFiles.length) {
         throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
