@@ -9,8 +9,8 @@
             "request": "launch",
             "name": "Launch Program",
             "skipFiles": ["<node_internals>/**"],
-            // "program": "${workspaceFolder}/index.js",
-            "program": "${workspaceFolder}/tests/testChutzpahReader.js",
+            "program": "${workspaceFolder}/index.js",
+            // "program": "${workspaceFolder}/tests/testChutzpahReader.js",
             "args": [
                 "C:\\projects\\khutzpa\\tests\\fakeSite\\fakeTests",
                 "/openInBrowser"
