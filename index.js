@@ -25,7 +25,9 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
                             console.log(`Example app listening on port ${expressPort}!`);
                         });
 
-                        var handle = opener(`http://localhost:${expressPort}/runner`);
+                        var handle = opener(
+                            `http://localhost:${expressPort}/runner?random=false`
+                        );
                         console.log(handle);
 
                         return 1;
