@@ -39,7 +39,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
             case actionTypes.WITH_COVERAGE:
                 console.log("coverage");
-                return coverageRunner.runKarmaCoverage(startingFilePath);
+                return coverageRunner.runKarmaCoverage(configInfo);
 
             default:
                 throw "Unknown command. CHECK CHOSELF.";

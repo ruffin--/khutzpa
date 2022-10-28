@@ -4,12 +4,14 @@ const fs = require("fs");
 const nodePath = require("node:path");
 const opener = require("opener");
 const expressServer = require("./expressServer");
+const stringManipulation = require("./stringManipulationService");
 
 const createKarmaConfig = function (overrides) {
     var baseConfig = {
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
         singleRun: true,
+        // singleRun: false,
 
         // enable / disable watching file and executing tests whenever any file changes
         autoWatch: false,
@@ -63,6 +65,10 @@ const createKarmaConfig = function (overrides) {
     return Object.assign({}, baseConfig, overrides);
 };
 
+function logit(x) {
+    console.log(JSON.stringify(x, null, "  "));
+}
+
 /*
 http://karma-runner.github.io/6.4/config/files.html#complete-example
 files: [
@@ -87,7 +93,24 @@ files: [
 ],
 */
 function startKarma(overrides) {
+    var serverHasStarted = false;
     var karmaConfig = createKarmaConfig(overrides);
+    logit(karmaConfig);
+
+    karmaConfig.files.forEach((x, i) => {
+        if (stringManipulation.startsWithSlash(x)) {
+            karmaConfig.files[i] = x.substring(1);
+        }
+    });
+
+    var processorKeys = Object.keys(karmaConfig.preprocessors);
+    processorKeys.forEach((key) => {
+        if (stringManipulation.startsWithSlash(key)) {
+            karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
+            delete karmaConfig.preprocessors[key];
+        }
+    });
+    logit(karmaConfig);
 
     return karma.config
         .parseConfig(
@@ -103,27 +126,31 @@ function startKarma(overrides) {
             (parsedKarmaConfig) => {
                 // fwiw
                 // http://karma-runner.github.io/6.4/dev/public-api.html
+                // I'm not sure why it names the callback   function.
                 const server = new Server(parsedKarmaConfig, function doneCallback(
                     exitCode
                 ) {
                     console.log("Karma has exited with " + exitCode);
                     console.log(arguments);
 
-                    fs.readdir("./coverage", function (err, list) {
+                    var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
+
+                    fs.readdir(coverageDir, function (err, list) {
                         var latestCoverageDir = "";
                         var latestTime = 0;
-                        console.log(list);
+                        console.log(list, err);
+
                         list.forEach((file) => {
                             // TODO: Change when we have other browsers, natch.
                             if (file.indexOf("Chrome") > -1) {
-                                var fullPath = nodePath.join("./coverage", file);
+                                var fullPath = nodePath.join(coverageDir, file);
                                 var statsObj = fs.statSync(fullPath);
                                 if (statsObj.isDirectory()) {
                                     console.log(`
 path: ${fullPath}
-a: ${statsObj.atimeMs},
-c: ${statsObj.ctimeMs},
-m: ${statsObj.mtimeMs},
+last accessed: ${statsObj.atimeMs},
+last changed:  ${statsObj.ctimeMs},
+last modified: ${statsObj.mtimeMs},
                                 `);
                                 }
 
@@ -136,20 +163,25 @@ m: ${statsObj.mtimeMs},
 
                         if (latestCoverageDir) {
                             console.log(latestCoverageDir);
-                            var serverApp =
-                                expressServer.startPassthrough(latestCoverageDir);
 
-                            var expressPort = 3000;
-                            serverApp.listen(expressPort, function () {
-                                console.log(
-                                    `Example app listening on port ${expressPort}!`
+                            // TODO: Figure out why doneCallback is getting called twice.
+                            if (!serverHasStarted) {
+                                serverHasStarted = true;
+                                var serverApp =
+                                    expressServer.startPassthrough(latestCoverageDir);
+
+                                var expressPort = 3000;
+                                serverApp.listen(expressPort, function () {
+                                    console.log(
+                                        `Example app listening on port ${expressPort}!`
+                                    );
+                                });
+
+                                var handle = opener(
+                                    `http://localhost:${expressPort}/index.html`
                                 );
-                            });
-
-                            var handle = opener(
-                                `http://localhost:${expressPort}/index.html`
-                            );
-                            console.log(handle);
+                                console.log("handle pid: " + handle.pid);
+                            }
                         } else {
                             console.warn("No coverage directory found!");
                         }
@@ -186,7 +218,7 @@ function runKarmaCoverage(configInfo) {
 
     var overrides = {
         port: 9876,
-        basePath: configInfo.basePath,
+        basePath: configInfo.jsonFileParent,
         // files: [{ pattern: "**/*.js", nocache: true }],
         // string-only is equivalent to...
         // equal to {pattern: theStringPath, watched: true, served: true, included: true}
