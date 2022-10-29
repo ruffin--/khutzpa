@@ -269,6 +269,23 @@ function handleAggressiveStar(configInfo) {
     });
 }
 
+var re = /^\*\/|\/\*\/|\/\*$/g;
+function starReplacer(match /*, p1, offset, original, group*/) {
+    // I know, I could've done this less bullheadedly. This works.
+    switch (match) {
+        case "*/":
+            return "**/";
+        case "/*":
+            return "/**";
+        default:
+            return "/**/";
+    }
+}
+
+function coverageAggressiveStar(s) {
+    return s.replace(re, starReplacer);
+}
+
 function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     if (chutzpahConfigObj.AggressiveStar) {
         handleAggressiveStar(chutzpahConfigObj);
@@ -330,17 +347,19 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
 
     if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
         chutzpahConfigObj.CodeCoverageIncludes.forEach((coverageIncludePattern) => {
-            if (!isWindows) {
-                coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
+            // if (!isWindows) {
+            coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
+            // }
+
+            if (chutzpahConfigObj.AggressiveStar) {
+                coverageIncludePattern = coverageAggressiveStar(coverageIncludePattern);
             }
 
-            console.log(
-                coverageIncludePattern,
-                minimatch.match(allRefFilePaths, coverageIncludePattern)
-            );
             coverageFiles = coverageFiles.concat(
                 minimatch.match(allRefFilePaths, coverageIncludePattern)
             );
+
+            console.log(coverageIncludePattern, coverageFiles);
         });
     }
 

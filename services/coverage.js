@@ -202,15 +202,15 @@ last modified: ${statsObj.mtimeMs},
 function runKarmaCoverage(configInfo) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
-    // karma files wants everything... I think... and then everything but the
-    // test for the coverage preprocessor.
+    // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
 
     // Now we need an object literal with each file to cover to tell karma
-    // to use the coverage preprocessor. We could use patterns, but this is
-    // much more straightforward (if not efficient -- though I suspect this
-    // means karma is doing less lifting and it doesn't matter).
+    // to use the coverage preprocessor to, um, preprocess those files.
+    // We could use wildcard patterns, but this is much more straightforward
+    // (if not efficient -- though I suspect this means karma is doing less
+    // lifting and it doesn't matter).
     var preprocessObj = {};
     configInfo.coverageFiles.forEach((fileToCover) => {
         preprocessObj[fileToCover] = ["coverage"];
