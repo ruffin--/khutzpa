@@ -126,7 +126,7 @@ function startKarma(overrides) {
             (parsedKarmaConfig) => {
                 // fwiw
                 // http://karma-runner.github.io/6.4/dev/public-api.html
-                // I'm not sure why it names the callback   function.
+                // I'm not sure why it names the callback function.
                 const server = new Server(parsedKarmaConfig, function doneCallback(
                     exitCode
                 ) {
