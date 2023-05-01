@@ -6,6 +6,10 @@ function startsWithSlash(str) {
     return str.startsWith("/") || str.startsWith("\\");
 }
 
+function isString(x) {
+    return typeof x === "string" || x instanceof String;
+}
+
 function removeLeadingSlashes(stringCollection) {
     if (!Array.isArray(stringCollection)) {
         stringCollection = [stringCollection];
@@ -21,4 +25,5 @@ function removeLeadingSlashes(stringCollection) {
 module.exports = {
     removeLeadingSlashes,
     startsWithSlash,
+    isString,
 };
