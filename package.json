@@ -32,9 +32,9 @@
         "karma-chrome-launcher": "^3.1.1",
         "karma-coverage": "^2.2.0",
         "karma-jasmine": "^5.1.0",
+        "karma-mocha-reporter": "^2.2.5",
         "minimatch": "^5.1.0",
-        "opener": "^1.5.2",
-        "karma-mocha-reporter": "^2.2.5"
+        "opener": "^1.5.2"
     },
     "engines": {
         "node": ">= 16.0.0"

@@ -36,8 +36,11 @@ const createKarmaConfig = function (overrides) {
 
         // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
         coverageReporter: {
-            reporters: [{ type: "text", dir: "../coverage/" }, { type: "text-summary" }],
-            // reporters: [{ type: 'html', dir: '../coverage/' }],
+            reporters: [
+                { type: "text-summary" },
+                { type: "html", dir: "../coverage/" },
+                { type: "text", dir: "coverage/", file: "coverage.txt" },
+            ],
         },
 
         // web server port
@@ -177,7 +180,6 @@ if (require.main === module) {
         jsonFileParent: myArgs[0] || "C:\\projects\\khutzpa\\tests\\fakeSite",
         allRefFilePaths: [
             "\\fakeCode\\add2.js",
-            "\\fakeCode\\angular",
             "\\fakeCode\\double.js",
             "\\fakeCode\\square.js",
         ],
