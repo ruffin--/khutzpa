@@ -173,7 +173,28 @@ if (require.main === module) {
     const myArgs = process.argv.slice(2);
     console.log("myArgs: ", myArgs);
 
-    startKarma({}).then(function (exitCode) {
+    var configResult = {
+        jsonFileParent: myArgs[0] || "C:\\projects\\khutzpa\\tests\\fakeSite",
+        allRefFilePaths: [
+            "\\fakeCode\\add2.js",
+            "\\fakeCode\\angular",
+            "\\fakeCode\\double.js",
+            "\\fakeCode\\square.js",
+        ],
+        specFiles: [
+            "\\fakeCode\\double.test.js",
+            "\\fakeTests\\code.test.js",
+            "\\fakeTests\\testSubdir\\add2.test.js",
+        ],
+        coverageFiles: [
+            "\\fakeCode\\add2.js",
+            "\\fakeCode\\angular",
+            "\\fakeCode\\double.js",
+            "\\fakeCode\\square.js",
+        ],
+    };
+
+    runKarmaCoverage(configResult).then(function (exitCode) {
         console.log("done (Promises probably outstanding)", exitCode);
     });
 }
