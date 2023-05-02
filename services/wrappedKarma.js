@@ -5,6 +5,13 @@
 const karma = require("karma");
 const stringManipulation = require("./stringManipulationService");
 
+let karmaRunIds = [];
+let karmaRunResults = {};
+
+function logit(x) {
+    // console.log(JSON.stringify(x, null, "  "));
+}
+
 const createKarmaConfig = function (overrides) {
     var baseConfig = {
         // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -72,13 +79,9 @@ const createKarmaConfig = function (overrides) {
     return Object.assign({}, baseConfig, overrides);
 };
 
-function logit(x) {
-    console.log(JSON.stringify(x, null, "  "));
-}
-
-function startKarma(overrides) {
+function startKarma(karmaRunId, overrides) {
     var karmaConfig = createKarmaConfig(overrides);
-    logit(karmaConfig);
+    // logit(karmaConfig);
 
     karmaConfig.files.forEach((x, i) => {
         if (stringManipulation.isString(x) && stringManipulation.startsWithSlash(x)) {
@@ -101,7 +104,7 @@ function startKarma(overrides) {
     });
     // logit(karmaConfig);
 
-    return karma.config
+    var karmaPromise = karma.config
         .parseConfig(
             null,
             karmaConfig,
@@ -119,24 +122,32 @@ function startKarma(overrides) {
                 const server = new karma.Server(parsedKarmaConfig, function doneCallback(
                     exitCode
                 ) {
+                    // 0 is success/no test failure.
+                    // Anything else is bad. Usually 1 afaict.
                     console.log("Karma has exited with " + exitCode);
-                    console.log(arguments);
+                    karmaRunResults[karmaRunId] = exitCode;
 
                     return exitCode;
                 }).on("progress", function (data) {
                     process.stdout.write(data);
                 });
 
-                server.start();
+                var serverPromise = server.start();
+                return serverPromise.then(function (x) {
+                    console.log("server promise", x);
+                    return x;
+                });
             },
             (rejectReason) => {
-                /* respond to the rejection reason error */
                 console.log("Error", rejectReason);
+                throw rejectReason;
             }
         );
+
+    return karmaPromise;
 }
 
-function runKarmaCoverage(configInfo) {
+function runKarmaCoverage(karmaRunId, configInfo) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -156,49 +167,91 @@ function runKarmaCoverage(configInfo) {
     var overrides = {
         port: 9876,
         basePath: configInfo.jsonFileParent,
-        // files: [{ pattern: "**/*.js", nocache: true }],
+
+        // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
         // string-only is equivalent to...
         // equal to {pattern: theStringPath, watched: true, served: true, included: true}
         files: allFiles,
+
         // everything but the tests.
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
     };
+    logit("config overrides for karma:", overrides);
 
-    console.log("config overrides for karma:", overrides);
+    console.log(overrides);
 
-    return startKarma(overrides);
+    return startKarma(karmaRunId, overrides);
 }
 
 if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
+    logit("myArgs: ", myArgs);
 
-    var configResult = {
-        jsonFileParent: myArgs[0] || "C:\\projects\\khutzpa\\tests\\fakeSite",
-        allRefFilePaths: [
-            "\\fakeCode\\add2.js",
-            "\\fakeCode\\double.js",
-            "\\fakeCode\\square.js",
-        ],
-        specFiles: [
-            "\\fakeCode\\double.test.js",
-            "\\fakeTests\\code.test.js",
-            "\\fakeTests\\testSubdir\\add2.test.js",
-        ],
-        coverageFiles: [
-            "\\fakeCode\\add2.js",
-            "\\fakeCode\\angular",
-            "\\fakeCode\\double.js",
-            "\\fakeCode\\square.js",
-        ],
-    };
+    var karmaRunId = "unique value";
+    karmaRunIds.push(karmaRunId);
+    karmaRunResults[karmaRunId] = undefined;
 
-    runKarmaCoverage(configResult).then(function (exitCode) {
-        console.log("done (Promises probably outstanding)", exitCode);
-    });
+    if (myArgs[0]) {
+        var configResult = {
+            jsonFileParent: myArgs[1] || "C:\\projects\\khutzpa\\tests\\fakeSite",
+            allRefFilePaths: [
+                "\\fakeCode\\add2.js",
+                "\\fakeCode\\double.js",
+                "\\fakeCode\\square.js",
+            ],
+            specFiles: [
+                "\\fakeCode\\double.test.js",
+                "\\fakeTests\\code.test.js",
+                "\\fakeTests\\testSubdir\\add2.test.js",
+            ],
+            coverageFiles: [
+                "\\fakeCode\\add2.js",
+                "\\fakeCode\\angular",
+                "\\fakeCode\\double.js",
+                "\\fakeCode\\square.js",
+            ],
+        };
+
+        runKarmaCoverage(karmaRunId, configResult).then(function (exitCode) {
+            console.log("done (Promises probably outstanding)", exitCode);
+        });
+    } else {
+        var config = {
+            karmaRunId: "probably a chutzpah.json path",
+            port: 9876,
+            basePath: "C:\\projects\\khutzpa\\tests\\fakeSite",
+            files: [
+                "\\fakeCode\\add2.js",
+                "\\fakeCode\\double.js",
+                "\\fakeCode\\square.js",
+                "\\fakeCode\\double.test.js",
+                "\\fakeTests\\code.test.js",
+                "\\fakeTests\\testSubdir\\add2.test.js",
+            ],
+            preprocessors: {
+                "\\fakeCode\\add2.js": ["coverage"],
+                "\\fakeCode\\angular": ["coverage"],
+                "\\fakeCode\\double.js": ["coverage"],
+                "\\fakeCode\\square.js": ["coverage"],
+            },
+        };
+
+        // startKarma(config).then(function (after) {
+        //     console.log("after", after);
+        // });
+
+        startKarma(karmaRunId, config);
+
+        var intervalId = setInterval(function () {
+            if (karmaRunIds.every((x) => karmaRunResults[x] !== undefined)) {
+                console.log(karmaRunResults, "global exit codes");
+                clearInterval(intervalId);
+            }
+        }, 2000);
+    }
 }
 
 module.exports = {
