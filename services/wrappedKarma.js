@@ -147,7 +147,7 @@ function startKarma(karmaRunId, overrides) {
     return karmaPromise;
 }
 
-function runKarmaCoverage(karmaRunId, configInfo) {
+function runFullTests(configInfo, karmaRunId) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -178,8 +178,6 @@ function runKarmaCoverage(karmaRunId, configInfo) {
         preprocessors: preprocessObj,
     };
     logit("config overrides for karma:", overrides);
-
-    console.log(overrides);
 
     return startKarma(karmaRunId, overrides);
 }
@@ -215,7 +213,7 @@ if (require.main === module) {
             ],
         };
 
-        runKarmaCoverage(karmaRunId, configResult).then(function (exitCode) {
+        runFullTests(configResult, karmaRunId).then(function (exitCode) {
             console.log("done (Promises probably outstanding)", exitCode);
         });
     } else {
@@ -245,6 +243,7 @@ if (require.main === module) {
 
         startKarma(karmaRunId, config);
 
+        // TODO: Turn into a Promise.
         var intervalId = setInterval(function () {
             if (karmaRunIds.every((x) => karmaRunResults[x] !== undefined)) {
                 console.log(karmaRunResults, "global exit codes");
@@ -255,5 +254,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-    runKarmaCoverage,
+    runFullTests,
 };

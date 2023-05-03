@@ -63,9 +63,16 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
         case actionTypes.RUN_ALL_CHUTZPAHS:
             console.log("run all the chutzpahs");
 
-            console.warn("Need to undo the testing stuff here");
-            chutzpahConfigLocs = [chutzpahWalk.walk(startingFilePath)[0]];
-            fnAction = wrappedKarma.runKarmaCoverage;
+            chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
+            console.log(chutzpahConfigLocs);
+
+            console.warn(
+                "Need to undo the testing stuff here -- " +
+                    " we're just doing one chutzpah.json to test"
+            );
+            chutzpahConfigLocs = [chutzpahConfigLocs[0]];
+
+            fnAction = wrappedKarma.runFullTests;
             break;
 
         default:
@@ -74,11 +81,11 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
     console.log("fnAction is set");
     return Promise.all(
+        // TODO: Dedupe chutzpahConfigLocs to be overly defensive.
         chutzpahConfigLocs.map(function (chutzpahSearchStart) {
             return chutzpahConfigReader.getConfigInfo(chutzpahSearchStart).then(
                 function (results) {
-                    debugger;
-                    return fnAction(results);
+                    return fnAction(results, chutzpahSearchStart);
                 },
                 function (err) {
                     console.error(err);
@@ -120,7 +127,7 @@ if (require.main === module) {
 
     var expressPort = 3000;
     cmdCallHandler(filePath, expressPort, command).then(function () {
-        console.log("done");
+        console.log("index.js done");
     });
 }
 
