@@ -7,6 +7,7 @@ const server = require("./services/expressServer");
 const wrappedKarma = require("./services/wrappedKarma");
 const utils = require("./helpers/utils");
 
+const prompt = require("prompt-sync")({ sigint: true });
 const fs = require("fs");
 const nodePath = require("node:path");
 // https://github.com/domenic/opener
@@ -65,7 +66,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             utils.debugLog("run all the chutzpahs");
 
             console.warn("Need to undo the testing stuff here");
-            chutzpahConfigLocs = [chutzpahWalk.walk(startingFilePath)[0]];
+            chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
@@ -76,6 +77,34 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             // Everything else returns a Promise, so when in Rome...
 
             fnAction = () => Promise.resolve(chutzpahConfigLocs);
+            break;
+
+        case actionTypes.WALK_ALL_RUN_ONE:
+            utils.debugLog("walk all run one");
+            console.log("Walking file hierarchy for Chutzpah.json files");
+            chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
+
+            if (chutzpahConfigLocs.length) {
+                var jsonLocsWithIndex = chutzpahConfigLocs.map((x, i) => `${i} -- ${x}`);
+                console.log(jsonLocsWithIndex.join("\n"));
+                const whichOne = prompt("Whhch do you want to run?");
+                var whichIndex = parseInt(whichOne, 10);
+
+                if (
+                    (whichIndex || 0 === whichIndex) &&
+                    whichIndex > -1 &&
+                    whichIndex < chutzpahConfigLocs.length
+                ) {
+                    chutzpahConfigLocs = [chutzpahConfigLocs[whichIndex]];
+                    fnAction = wrappedKarma.runWrappedKarma;
+                } else {
+                    console.warn("Invalid index selected.");
+                    process.exit();
+                }
+            } else {
+                console.warn("No Chutzpah files found.");
+                process.exit();
+            }
             break;
 
         default:
@@ -99,8 +128,8 @@ khutzpa /path/to/root/directory /{command}
     return Promise.all(
         chutzpahConfigLocs.map(function (chutzpahSearchStart) {
             return chutzpahConfigReader.getConfigInfo(chutzpahSearchStart).then(
-                function (results) {
-                    return fnAction(chutzpahSearchStart, results);
+                function (configContents) {
+                    return fnAction(configContents, chutzpahSearchStart);
                 },
                 function (err) {
                     console.error(err);
@@ -111,13 +140,15 @@ khutzpa /path/to/root/directory /{command}
     );
 }
 
-// Okay, I know enums are a code smell. mvp v1.
+// Okay, I know, I know. enums are a code smell. mvp v1.
+// https://lostechies.com/jimmybogard/2008/08/12/enumeration-classes/
 var actionTypes = {
     OPEN_IN_BROWSER: 1,
     WITH_COVERAGE: 2,
     RUN_ALL_CHUTZPAHS: 3,
     FIND_ALL_CHUTZPAHS: 4,
-    PRINT_USAGE: 5,
+    WALK_ALL_RUN_ONE: 5,
+    PRINT_USAGE: 6,
 };
 
 if (require.main === module) {
@@ -135,6 +166,8 @@ if (require.main === module) {
             ? actionTypes.FIND_ALL_CHUTZPAHS
             : myArgs.indexOf("/runAllSuites") > -1
             ? actionTypes.RUN_ALL_CHUTZPAHS
+            : myArgs.indexOf("/walkAllRunOne")
+            ? actionTypes.WALK_ALL_RUN_ONE
             : actionTypes.PRINT_USAGE;
 
     var filePath = myArgs.shift();
