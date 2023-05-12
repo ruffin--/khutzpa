@@ -148,7 +148,7 @@ function startKarma(karmaRunId, overrides) {
     return karmaPromise;
 }
 
-function runKarmaCoverage(karmaRunId, configInfo) {
+function runWrappedKarma(configInfo, karmaRunId) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -220,7 +220,7 @@ if (require.main === module) {
             ],
         };
 
-        runKarmaCoverage(karmaRunId, configResult).then(function (exitCode) {
+        runWrappedKarma(configResult, karmaRunId).then(function (exitCode) {
             console.log("done (Promises probably outstanding)", exitCode);
         });
     } else {
@@ -260,5 +260,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-    runKarmaCoverage,
+    runWrappedKarma,
 };

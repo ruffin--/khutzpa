@@ -5,6 +5,7 @@ const specRunner = require("./services/runJasmineSpecs");
 const coverageRunner = require("./services/coverage");
 const server = require("./services/expressServer");
 const wrappedKarma = require("./services/wrappedKarma");
+const utils = require("./helpers/utils");
 
 const fs = require("fs");
 const nodePath = require("node:path");
@@ -25,7 +26,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
     switch (actionType) {
         case actionTypes.OPEN_IN_BROWSER:
-            console.log("open in browser");
+            utils.debugLog("open in browser");
 
             fnAction = function (configInfo) {
                 return specRunner.createSpecHtml(configInfo).then(
@@ -54,36 +55,55 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             break;
 
         case actionTypes.WITH_COVERAGE:
-            console.log("coverage");
+            utils.debugLog("coverage");
             fnAction = function (configInfo) {
                 return coverageRunner.runKarmaCoverage(configInfo);
             };
             break;
 
         case actionTypes.RUN_ALL_CHUTZPAHS:
-            console.log("run all the chutzpahs");
+            utils.debugLog("run all the chutzpahs");
 
             console.warn("Need to undo the testing stuff here");
             chutzpahConfigLocs = [chutzpahWalk.walk(startingFilePath)[0]];
-            fnAction = wrappedKarma.runKarmaCoverage;
+            fnAction = wrappedKarma.runWrappedKarma;
+            break;
+
+        case actionTypes.FIND_ALL_CHUTZPAHS:
+            utils.debugLog("FIND all the chutzpahs");
+
+            chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
+            // Everything else returns a Promise, so when in Rome...
+
+            fnAction = () => Promise.resolve(chutzpahConfigLocs);
             break;
 
         default:
-            throw "Unknown command. CHECK CHOSELF.";
+            fnAction = () =>
+                console.log(`=================================================
+khutzpa usage:
+=================================================
+
+khutzpa /path/to/root/directory /{command}
+
+    Currently supported commands include:
+
+    /openInBrowser
+    /coverage
+    /findAllSuites
+    /runallSuites
+    /usage`);
     }
 
-    console.log("fnAction is set");
+    utils.debugLog("fnAction is set");
     return Promise.all(
         chutzpahConfigLocs.map(function (chutzpahSearchStart) {
             return chutzpahConfigReader.getConfigInfo(chutzpahSearchStart).then(
                 function (results) {
-                    debugger;
-                    return fnAction(results);
+                    return fnAction(chutzpahSearchStart, results);
                 },
                 function (err) {
                     console.error(err);
-                    debugger;
-
                     return err;
                 }
             );
@@ -96,31 +116,42 @@ var actionTypes = {
     OPEN_IN_BROWSER: 1,
     WITH_COVERAGE: 2,
     RUN_ALL_CHUTZPAHS: 3,
+    FIND_ALL_CHUTZPAHS: 4,
+    PRINT_USAGE: 5,
 };
 
 if (require.main === module) {
     // First two arguments for a node process are always "Node"
     // and the path to this app. Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
-
-    var filePath = myArgs.shift();
-    if (!fs.existsSync(filePath)) {
-        throw `Invalid starting file ${filePath}`;
-    }
+    utils.debugLog("myArgs: ", myArgs);
 
     var command =
         myArgs.indexOf("/openInBrowser") > -1
             ? actionTypes.OPEN_IN_BROWSER
             : myArgs.indexOf("/coverage") > -1
             ? actionTypes.WITH_COVERAGE
+            : myArgs.indexOf("/findAllSuites") > -1
+            ? actionTypes.FIND_ALL_CHUTZPAHS
             : myArgs.indexOf("/runAllSuites") > -1
             ? actionTypes.RUN_ALL_CHUTZPAHS
-            : "unknown";
+            : actionTypes.PRINT_USAGE;
+
+    var filePath = myArgs.shift();
+    utils.debugLog(command);
+    if (command !== actionTypes.PRINT_USAGE && !fs.existsSync(filePath)) {
+        throw `Invalid starting file ${filePath}`;
+    }
 
     var expressPort = 3000;
-    cmdCallHandler(filePath, expressPort, command).then(function () {
-        console.log("done");
+    cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
+        utils.debugLog("done");
+
+        if (resultsIfAny) {
+            utils.debugLog("::RESULTS::");
+            utils.debugLog(resultsIfAny);
+            utils.debugLog("::eoRESULTS::");
+        }
     });
 }
 
