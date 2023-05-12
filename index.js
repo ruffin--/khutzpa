@@ -132,7 +132,7 @@ khutzpa /path/to/root/directory /{command}
                     return fnAction(configContents, chutzpahSearchStart);
                 },
                 function (err) {
-                    console.error(err);
+                    console.error(err, chutzpahSearchStart);
                     return err;
                 }
             );

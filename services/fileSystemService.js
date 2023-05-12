@@ -2,6 +2,8 @@ const fs = require("fs");
 const fsPromises = require("fs").promises;
 const nodePath = require("node:path");
 
+const strman = require("../helpers/stringManipulation");
+
 // mostly https://stackoverflow.com/a/56188301/1028230
 function sniffEncoding(filePath) {
     /*eslint-disable new-cap */
@@ -35,7 +37,9 @@ function getFileContents(filePath) {
                 ? contents.replace(/^\uFEFF/, "")
                 : contents;
 
-        return contents.replace(/\/\/.*[\r\n]+/g, "");
+        // remove inline comments so that it's json, not jsonc.
+        // return contents.replace(/\/\/.*[\r\n]+/g, ""); <<< dumb. http:// gets smacked.
+        return strman.stripInlineComments(contents);
     });
 }
 
