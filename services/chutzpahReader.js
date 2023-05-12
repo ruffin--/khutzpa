@@ -5,13 +5,12 @@ const minimatch = require("minimatch");
 const nodePath = require("node:path");
 const Os = require("os");
 const fileSystemService = require("./fileSystemService");
-const manip = require("./stringManipulationService");
+const manip = require("../helpers/stringManipulation");
 
 // const { config } = require("process");
 
 const isWindows = Os.platform() === "win32";
 console.log("isWindows? " + isWindows);
-const slash = isWindows ? "\\" : "/";
 
 var selectorUtils = {
     findAllIncludes: function (selector, theseFiles) {
@@ -178,7 +177,7 @@ function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
             // have full paths in the getAllFilePaths results.
             theseFiles = theseFiles.map((x) => x.replace(selectorFullPath, ""));
 
-            console.log(`all files for ${nth}th ${type} selector before filtering: 
+            console.log(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
 ${JSON.stringify(theseFiles, null, "  ")}
 
@@ -197,7 +196,7 @@ ${JSON.stringify(theseFiles, null, "  ")}
 
             console.log(`and after filtering:
             ${JSON.stringify(theseFiles, null, "  ")}
-                        
+
 `);
         } else {
             theseFiles = [nodePath.join(jsonFileParent, selector.Path)];
@@ -435,6 +434,7 @@ function getConfigInfo(originalTestPath) {
         console.log("read chutzpah json", chutzpahConfigObj);
 
         var info = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
+        console.log(info);
 
         return {
             originalTestPath,

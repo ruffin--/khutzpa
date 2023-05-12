@@ -3,7 +3,8 @@
  * test suite when exexcuted.
  ************************************************/
 const karma = require("karma");
-const stringManipulation = require("./stringManipulationService");
+const stringManipulation = require("../helpers/stringManipulation");
+const { mcDebugger } = require("../helpers/utils");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
@@ -152,8 +153,12 @@ function runKarmaCoverage(karmaRunId, configInfo) {
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
-    var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
-
+    try {
+        var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+    } catch (e) {
+        console.error(e);
+        mcDebugger();
+    }
     // Now we need an object literal with each file to cover to tell karma
     // to use the coverage preprocessor to, um, preprocess those files.
     // We could use wildcard patterns, but this is much more straightforward

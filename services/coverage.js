@@ -4,7 +4,7 @@ const fs = require("fs");
 const nodePath = require("node:path");
 const opener = require("opener");
 const expressServer = require("./expressServer");
-const stringManipulation = require("./stringManipulationService");
+const stringManipulation = require("../helpers/stringManipulation");
 
 const createKarmaConfig = function (overrides) {
     var baseConfig = {
