@@ -25,6 +25,12 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
     var chutzpahConfigLocs = [startingFilePath];
 
+    // most of the time, we'll be running a set of async operations on
+    // the chutzpah contents of each applicable chutzpah config; thus the default.
+    // But see below where sometimes we return a static value directly.
+    var runEachPromise = true;
+    var staticPayload = {};
+
     switch (actionType) {
         case actionTypes.OPEN_IN_BROWSER:
             utils.debugLog("open in browser");
@@ -73,10 +79,8 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
         case actionTypes.FIND_ALL_CHUTZPAHS:
             utils.debugLog("FIND all the chutzpahs");
 
-            chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
-            // Everything else returns a Promise, so when in Rome...
-
-            fnAction = () => Promise.resolve(chutzpahConfigLocs);
+            staticPayload = chutzpahWalk.walk(startingFilePath);
+            runEachPromise = false;
             break;
 
         case actionTypes.WALK_ALL_RUN_ONE:
@@ -125,20 +129,25 @@ khutzpa /path/to/root/directory /{command}
     }
 
     utils.debugLog("fnAction is set");
-    return Promise.all(
-        chutzpahConfigLocs.map(function (chutzpahSearchStart) {
-            return chutzpahConfigReader.getConfigInfo(chutzpahSearchStart).then(
-                function (configContents) {
-                    return fnAction(configContents, chutzpahSearchStart);
-                },
-                function (err) {
-                    console.error(err, chutzpahSearchStart);
-                    return err;
-                }
-            );
-        })
-    );
+    if (runEachPromise) {
+        return Promise.all(
+            chutzpahConfigLocs.map(function (chutzpahSearchStart) {
+                return chutzpahConfigReader.getConfigInfo(chutzpahSearchStart).then(
+                    function (configContents) {
+                        return fnAction(configContents, chutzpahSearchStart);
+                    },
+                    function (err) {
+                        console.error(err, chutzpahSearchStart);
+                        return err;
+                    }
+                );
+            })
+        );
+    }
+
+    return Promise.resolve(staticPayload);
 }
+// eo cmdCallHandler
 
 // Okay, I know, I know. enums are a code smell. mvp v1.
 // https://lostechies.com/jimmybogard/2008/08/12/enumeration-classes/
