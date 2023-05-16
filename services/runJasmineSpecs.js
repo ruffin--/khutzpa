@@ -1,6 +1,7 @@
 const fs = require("fs");
 const fsPromises = fs.promises;
 const nodePath = require("node:path");
+const utils = require("../helpers/utils");
 
 // https://jasmine.github.io/pages/getting_started.html
 var specRunnerTemplate = `<!DOCTYPE html>
@@ -38,7 +39,7 @@ function createSpecHtml(configInfo, writeToFile) {
             nodePath.dirname(configInfo.configFilePath),
             "runner.html"
         );
-        console.log(`${htmlContents}
+        utils.debugLog(`${htmlContents}
 
 #############
 writing to

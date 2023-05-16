@@ -1,7 +1,7 @@
-/*global __dirname */
 const express = require("express");
 const app = express();
 const nodePath = require("node:path");
+const utils = require("../helpers/utils");
 
 function startRunner(homeDirPath, runnerSource) {
     app.get("/home", function (req, res) {
@@ -23,17 +23,17 @@ function startRunner(homeDirPath, runnerSource) {
                     "lib",
                     "jasmine-4.1.1"
                 );
-                // console.log(root);
+                // utils.debugLog(root);
                 return root;
             })()
         )
     );
 
-    console.log("Express home dir: " + homeDirPath);
+    utils.debugLog("Express home dir: " + homeDirPath);
     app.use("/", express.static(homeDirPath));
 
     // app.listen(port, function () {
-    //     console.log(`Example app listening on port ${port}!`);
+    //     utils.debugLog(`Example app listening on port ${port}!`);
     // });
 
     return app;

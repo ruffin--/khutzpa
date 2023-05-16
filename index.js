@@ -44,13 +44,15 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
                         );
 
                         serverApp.listen(expressPort, function () {
-                            console.log(`Example app listening on port ${expressPort}!`);
+                            utils.debugLog(
+                                `Example app listening on port ${expressPort}!`
+                            );
                         });
 
                         var handle = opener(
                             `http://localhost:${expressPort}/runner?random=false`
                         );
-                        console.log(handle);
+                        utils.debugLog(handle);
 
                         return 1;
                     },
@@ -77,7 +79,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             break;
 
         case actionTypes.FIND_ALL_CHUTZPAHS:
-            utils.debugLog("FIND all the chutzpahs");
+            utils.debugLog("FIND all the chutzpahs but don't run them");
 
             staticPayload = chutzpahWalk.walk(startingFilePath);
             runEachPromise = false;
@@ -85,13 +87,13 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
         case actionTypes.WALK_ALL_RUN_ONE:
             utils.debugLog("walk all run one");
-            console.log("Walking file hierarchy for Chutzpah.json files");
+            utils.debugLog("Walking file hierarchy for Chutzpah.json files");
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
 
             if (chutzpahConfigLocs.length) {
                 var jsonLocsWithIndex = chutzpahConfigLocs.map((x, i) => `${i} -- ${x}`);
-                console.log(jsonLocsWithIndex.join("\n"));
-                const whichOne = prompt("Whhch do you want to run?");
+                utils.debugLog(jsonLocsWithIndex.join("\n"));
+                const whichOne = prompt("Which do you want to run?");
                 var whichIndex = parseInt(whichOne, 10);
 
                 if (
@@ -99,6 +101,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
                     whichIndex > -1 &&
                     whichIndex < chutzpahConfigLocs.length
                 ) {
+                    utils.debugLog("Running config index: " + whichIndex);
                     chutzpahConfigLocs = [chutzpahConfigLocs[whichIndex]];
                     fnAction = wrappedKarma.runWrappedKarma;
                 } else {
@@ -113,7 +116,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
         default:
             fnAction = () =>
-                console.log(`=================================================
+                utils.debugLog(`=================================================
 khutzpa usage:
 =================================================
 

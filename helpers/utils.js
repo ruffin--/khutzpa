@@ -1,8 +1,6 @@
 const fs = require("fs");
 const { isString } = require("./stringManipulation");
 
-const areDebugging = true;
-const logAllToFile = true;
 const settingsCue = "x:";
 
 function csvToLiteral(csv) {
@@ -42,6 +40,21 @@ function isParseable(jsonString) {
     return false;
 }
 
+// yes, we lose the settings hack here.
+function alwaysLog() {
+    debugLog([
+        {
+            alwaysLog: true,
+        },
+        ...arguments,
+    ]);
+}
+
+// hacky settings for logging
+const areDebugging = true;
+const dontLogToConsole = false;
+const logAllToFile = true;
+
 function debugLog() {
     var args = [].slice.call(arguments);
     // eslint-disable-next-line
@@ -69,7 +82,10 @@ function debugLog() {
 
             if (settings.tofile) {
                 args.forEach((arg) =>
-                    fs.writeFileSync("./log.txt", JSON.stringify(arg, null, "  "))
+                    fs.appendFileSync(
+                        "./log.txt",
+                        (isString(arg) ? arg : JSON.stringify(arg, null, "  ")) + "\n"
+                    )
                 );
             }
         } catch (e) {
@@ -78,10 +94,14 @@ function debugLog() {
         }
     }
 
-    if (settings.asjson) {
-        args.forEach((arg) => console.log(JSON.stringify(arg, null, "  ")));
-    } else {
-        console.log(...args);
+    if (!dontLogToConsole || settings.alwaysLog) {
+        if (settings.asjson || args.length === 1) {
+            args.forEach((arg) =>
+                console.log(isString(arg) ? arg : JSON.stringify(arg, null, "  "))
+            );
+        } else {
+            console.log(...args);
+        }
     }
 }
 
@@ -95,6 +115,7 @@ function mcDebugger() {
 
 module.exports = {
     debugLog,
+    alwaysLog,
     mcDebugger,
     isParseable,
 };

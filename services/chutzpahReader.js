@@ -6,11 +6,12 @@ const nodePath = require("node:path");
 const Os = require("os");
 const fileSystemService = require("./fileSystemService");
 const manip = require("../helpers/stringManipulation");
+const utils = require("../helpers/utils");
 
 // const { config } = require("process");
 
 const isWindows = Os.platform() === "win32";
-console.log("isWindows? " + isWindows);
+utils.debugLog("isWindows? " + isWindows);
 
 var selectorUtils = {
     findAllIncludes: function (selector, theseFiles) {
@@ -18,7 +19,7 @@ var selectorUtils = {
 
         selectorUtils.normalizeIncludeVsIncludes(selector);
 
-        console.log("includes", selector.Includes);
+        utils.debugLog("includes", selector.Includes);
 
         // TODO: You may also need to solve the asterisk interpretation issue.
         // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
@@ -116,7 +117,7 @@ var selectorUtils = {
     removeAllExcludes: function (selector, theseFiles) {
         selectorUtils.normalizeExcludeVsExcludes(selector);
 
-        console.log("Excludes", selector.Excludes);
+        utils.debugLog("Excludes", selector.Excludes);
 
         selector.Excludes.forEach(
             (excludePattern) =>
@@ -141,7 +142,7 @@ function mergeAndDedupe(parentCollection, newFiles) {
 }
 
 function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
-    console.log({ title: "handleChutzpahSelector", selector, jsonFileParent });
+    utils.debugLog({ title: "handleChutzpahSelector", selector, jsonFileParent });
 
     if (!selector.Path) {
         selector.Path = jsonFileParent;
@@ -177,7 +178,7 @@ function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
             // have full paths in the getAllFilePaths results.
             theseFiles = theseFiles.map((x) => x.replace(selectorFullPath, ""));
 
-            console.log(`all files for ${nth}th ${type} selector before filtering:
+            utils.debugLog(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
 ${JSON.stringify(theseFiles, null, "  ")}
 
@@ -194,7 +195,7 @@ ${JSON.stringify(theseFiles, null, "  ")}
                     : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
             );
 
-            console.log(`and after filtering:
+            utils.debugLog(`and after filtering:
             ${JSON.stringify(theseFiles, null, "  ")}
 
 `);
@@ -205,7 +206,7 @@ ${JSON.stringify(theseFiles, null, "  ")}
         return theseFiles;
     }
 
-    console.log(`${selectorFullPath} from json does not exist`);
+    utils.debugLog(`${selectorFullPath} from json does not exist`);
     return [];
 }
 
@@ -249,7 +250,7 @@ function handleAggressiveStar(configInfo) {
                                     (x) => x === allFoldersSelector
                                 )
                             ) {
-                                console.log(
+                                utils.debugLog(
                                     `GOING AGGRESSIVE!!! ${refsOrTests} - ${singlePath}`
                                 );
 
@@ -364,7 +365,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
                 minimatch.match(allRefFilePaths, coverageIncludePattern)
             );
 
-            console.log(coverageIncludePattern, coverageFiles);
+            utils.debugLog(coverageIncludePattern, coverageFiles);
         });
     }
 
@@ -388,7 +389,7 @@ function findChutzpahJson(startPath) {
 
     var foundChutzpahJson = undefined;
     while (!foundChutzpahJson) {
-        console.log("checking: " + possibleDir);
+        utils.debugLog("checking: " + possibleDir);
         var tryHere = nodePath.join(possibleDir, "Chutzpah.json");
         if (fs.existsSync(tryHere)) {
             foundChutzpahJson = tryHere;
@@ -398,7 +399,7 @@ function findChutzpahJson(startPath) {
                 throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
             }
             possibleDir = newPossibleDir;
-            // console.log("Next dir up: " + possibleDir);
+            // utils.debugLog("Next dir up: " + possibleDir);
         }
     }
 
@@ -419,7 +420,7 @@ function getConfigInfo(originalTestPath) {
         );
     }
 
-    console.log("Reading Chutzpah config: " + configFilePath);
+    utils.debugLog("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
@@ -431,10 +432,10 @@ function getConfigInfo(originalTestPath) {
 
     return fileSystemService.getFileContents(jsonFilePath).then(function (chutzpahJson) {
         var chutzpahConfigObj = JSON.parse(chutzpahJson);
-        console.log("read chutzpah json", chutzpahConfigObj);
+        utils.debugLog("read chutzpah json", chutzpahConfigObj);
 
         var info = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
-        console.log(info);
+        utils.debugLog(info);
 
         return {
             originalTestPath,
@@ -456,7 +457,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
+    utils.debugLog("myArgs: ", myArgs);
 
     fileSystemService
         .getFileContents("C:\\temp\\chutzpahTestValues.json")
@@ -465,7 +466,7 @@ if (require.main === module) {
 
             getConfigInfo(chutzpahTestValues.configPath).then((values) => {
                 var valuesAsString = JSON.stringify(values, null, "  ");
-                console.log(valuesAsString);
+                utils.debugLog(valuesAsString);
                 fs.writeFileSync("C:\\temp\\values.json", valuesAsString);
             });
         });

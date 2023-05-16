@@ -4,13 +4,13 @@
  ************************************************/
 const karma = require("karma");
 const stringManipulation = require("../helpers/stringManipulation");
-const { mcDebugger } = require("../helpers/utils");
+const utils = require("../helpers/utils");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
 
 function logit(x) {
-    // console.log(JSON.stringify(x, null, "  "));
+    // utils.debugLog(JSON.stringify(x, null, "  "));
 }
 
 const createKarmaConfig = function (overrides) {
@@ -125,7 +125,7 @@ function startKarma(karmaRunId, overrides) {
                 ) {
                     // 0 is success/no test failure.
                     // Anything else is bad. Usually 1 afaict.
-                    console.log("Karma has exited with " + exitCode);
+                    utils.debugLog("Wrapped karma has exited with " + exitCode);
                     karmaRunResults[karmaRunId] = exitCode;
 
                     return exitCode;
@@ -135,12 +135,12 @@ function startKarma(karmaRunId, overrides) {
 
                 var serverPromise = server.start();
                 return serverPromise.then(function (x) {
-                    console.log("server promise", x);
+                    utils.debugLog("server promise", x);
                     return x;
                 });
             },
             (rejectReason) => {
-                console.log("Error", rejectReason);
+                utils.debugLog("Error", rejectReason);
                 throw rejectReason;
             }
         );
@@ -157,7 +157,7 @@ function runWrappedKarma(configInfo, karmaRunId) {
         var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
     } catch (e) {
         console.error(e);
-        mcDebugger();
+        utils.mcDebugger();
     }
     // Now we need an object literal with each file to cover to tell karma
     // to use the coverage preprocessor to, um, preprocess those files.
@@ -184,7 +184,7 @@ function runWrappedKarma(configInfo, karmaRunId) {
     };
     logit("config overrides for karma:", overrides);
 
-    console.log(overrides);
+    utils.debugLog(overrides);
 
     return startKarma(karmaRunId, overrides);
 }
@@ -221,7 +221,7 @@ if (require.main === module) {
         };
 
         runWrappedKarma(configResult, karmaRunId).then(function (exitCode) {
-            console.log("done (Promises probably outstanding)", exitCode);
+            utils.debugLog("done (Promises probably outstanding)", exitCode);
         });
     } else {
         var config = {
@@ -245,14 +245,14 @@ if (require.main === module) {
         };
 
         // startKarma(config).then(function (after) {
-        //     console.log("after", after);
+        //     utils.debugLog("after", after);
         // });
 
         startKarma(karmaRunId, config);
 
         var intervalId = setInterval(function () {
             if (karmaRunIds.every((x) => karmaRunResults[x] !== undefined)) {
-                console.log(karmaRunResults, "global exit codes");
+                utils.debugLog(karmaRunResults, "global exit codes");
                 clearInterval(intervalId);
             }
         }, 2000);

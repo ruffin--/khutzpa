@@ -5,6 +5,7 @@ const nodePath = require("node:path");
 const opener = require("opener");
 const expressServer = require("./expressServer");
 const stringManipulation = require("../helpers/stringManipulation");
+const utils = require("../helpers/utils");
 
 const createKarmaConfig = function (overrides) {
     var baseConfig = {
@@ -65,10 +66,6 @@ const createKarmaConfig = function (overrides) {
     return Object.assign({}, baseConfig, overrides);
 };
 
-function logit(x) {
-    console.log(JSON.stringify(x, null, "  "));
-}
-
 /*
 http://karma-runner.github.io/6.4/config/files.html#complete-example
 files: [
@@ -95,7 +92,7 @@ files: [
 function startKarma(overrides) {
     var serverHasStarted = false;
     var karmaConfig = createKarmaConfig(overrides);
-    logit(karmaConfig);
+    utils.debugLog(karmaConfig);
 
     karmaConfig.files.forEach((x, i) => {
         if (stringManipulation.startsWithSlash(x)) {
@@ -110,7 +107,7 @@ function startKarma(overrides) {
             delete karmaConfig.preprocessors[key];
         }
     });
-    logit(karmaConfig);
+    utils.debugLog(karmaConfig);
 
     return karma.config
         .parseConfig(
@@ -130,15 +127,15 @@ function startKarma(overrides) {
                 const server = new Server(parsedKarmaConfig, function doneCallback(
                     exitCode
                 ) {
-                    console.log("Karma has exited with " + exitCode);
-                    console.log(arguments);
+                    utils.debugLog("Karma has exited with " + exitCode);
+                    utils.debugLog(arguments);
 
                     var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
 
                     fs.readdir(coverageDir, function (err, list) {
                         var latestCoverageDir = "";
                         var latestTime = 0;
-                        console.log(list, err);
+                        utils.debugLog(list, err);
 
                         list.forEach((file) => {
                             // TODO: Change when we have other browsers, natch.
@@ -146,7 +143,7 @@ function startKarma(overrides) {
                                 var fullPath = nodePath.join(coverageDir, file);
                                 var statsObj = fs.statSync(fullPath);
                                 if (statsObj.isDirectory()) {
-                                    console.log(`
+                                    utils.debugLog(`
 path: ${fullPath}
 last accessed: ${statsObj.atimeMs},
 last changed:  ${statsObj.ctimeMs},
@@ -162,7 +159,7 @@ last modified: ${statsObj.mtimeMs},
                         });
 
                         if (latestCoverageDir) {
-                            console.log(latestCoverageDir);
+                            utils.debugLog(latestCoverageDir);
 
                             // TODO: Figure out why doneCallback is getting called twice.
                             if (!serverHasStarted) {
@@ -172,7 +169,7 @@ last modified: ${statsObj.mtimeMs},
 
                                 var expressPort = 3000;
                                 serverApp.listen(expressPort, function () {
-                                    console.log(
+                                    utils.debugLog(
                                         `Example app listening on port ${expressPort}!`
                                     );
                                 });
@@ -180,7 +177,7 @@ last modified: ${statsObj.mtimeMs},
                                 var handle = opener(
                                     `http://localhost:${expressPort}/index.html`
                                 );
-                                console.log("handle pid: " + handle.pid);
+                                utils.debugLog("handle pid: " + handle.pid);
                             }
                         } else {
                             console.warn("No coverage directory found!");
@@ -194,7 +191,7 @@ last modified: ${statsObj.mtimeMs},
             },
             (rejectReason) => {
                 /* respond to the rejection reason error */
-                console.log("Error", rejectReason);
+                console.error("Error", rejectReason);
             }
         );
 }
@@ -228,7 +225,7 @@ function runKarmaCoverage(configInfo) {
         preprocessors: preprocessObj,
     };
 
-    console.log("config overrides for karma:", overrides);
+    utils.debugLog("config overrides for karma:", overrides);
 
     return startKarma(overrides);
 }
@@ -237,12 +234,12 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
+    utils.alwaysLog("myArgs: ", myArgs);
 
     var basePath = myArgs[0];
 
     startKarma(basePath).then(function () {
-        console.log("done");
+        utils.alwaysLog("done");
     });
 }
 

@@ -1,7 +1,7 @@
-var fs = require("fs");
-var path = require("path");
-var fileSystemService = require("./fileSystemService");
-var utils = require("../helpers/utils");
+const fs = require("fs");
+const path = require("path");
+const fileSystemService = require("./fileSystemService");
+const utils = require("../helpers/utils");
 
 function chutzpahWalk(dir) {
     if (!fs.statSync(dir).isDirectory()) {
@@ -34,7 +34,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
+    utils.debugLog("myArgs: ", myArgs);
 
     fileSystemService
         .getFileContents("C:\\temp\\chutzpahTestValues.json")
