@@ -13,73 +13,103 @@ const utils = require("../helpers/utils");
 const isWindows = Os.platform() === "win32";
 utils.debugLog("isWindows? " + isWindows);
 
-var selectorUtils = {
-    findAllIncludes: function (selector, theseFiles) {
-        var allMatches = [];
+// We have two competing issues here...
+// A. *.js style globs only match files in the root dir.
+// B. minimatch always fails to match ../s in paths.
+//      https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
+//      (It looked like optimizationLevel:2 would change that, but it doesn't.)
+//      (Appears that's b/c you're using v5, not v7+)
+//      https://github.com/isaacs/minimatch/blob/main/changelog.md
+// That means B. wants full paths, but A doesn't want a full path appended.
+// That conflict makes it tough to use paths as single strings.
+// Full path doesn't work A & B. Hacks are hard to match back up.
+function hasRelativeOrFullPathMatch(fullPath, home, glob) {
+    var relative = nodePath.relative(home, fullPath);
+    var valueForDebugging = minimatch(relative, glob) || minimatch(fullPath, glob);
 
-        selectorUtils.normalizeIncludeVsIncludes(selector);
+    console.log(`Match?
+        ${home}
+        ${fullPath}
+        ${relative}
+        ${glob}
+        ${valueForDebugging}`);
 
-        utils.debugLog("includes", selector.Includes);
+    return valueForDebugging;
+}
 
-        // TODO: You may also need to solve the asterisk interpretation issue.
-        // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
-        // { "Includes": ["*test1*"] },
-        // "Includes all tests that contain test1 in its path. This is in glob format."
-        //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        // If that's accurate, that's not how globs in minimatch work.
-        //
-        // Below: Trying to solve the minimatch starting slash issue.
-        selector.Includes.forEach(function (includePattern) {
-            // if the pattern doesn't have a leading slash but our files do,
-            // that's an issue. remove them for the comparison and then...
-            // put them back?
-            var withSlashes = [];
-            var noSlashesForComparison = [];
-            if (!manip.startsWithSlash(includePattern)) {
-                withSlashes = theseFiles.filter((x) => manip.startsWithSlash(x));
-                noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
+function minimatchEngine(selector, fullPaths, home, selectorName) {
+    var allMatches = [];
+
+    selectorName = selectorName || "Includes";
+
+    // TODO: You may also need to solve the asterisk interpretation issue.
+    // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
+    // { "Includes": ["*test1*"] },
+    // "Includes all tests that contain test1 in its path. This is in glob format."
+    //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // If that's accurate, that's not how globs in minimatch work.
+    //
+    // Below: Trying to solve the minimatch starting slash issue.
+    selector[selectorName].forEach(function (includePattern) {
+        // if the pattern doesn't have a leading slash but our files do,
+        // that's an issue, since that seems to mean "root of *relative*
+        // path to Chutzpah instead of root of file system to minimatch.
+        // Then remember which paths were doctored and restore them after.
+        var withSlashes = [];
+        var noSlashesForComparison = [];
+        if (!manip.startsWithSlash(includePattern)) {
+            withSlashes = fullPaths.filter((x) => manip.startsWithSlash(x));
+            noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
+        }
+
+        var matches = fullPaths.filter((singleFullPath) =>
+            hasRelativeOrFullPathMatch(singleFullPath, home, includePattern)
+        );
+
+        // Ok, if we stripped a leading slash, put it back. Inefficient, but computers
+        // love doing this stuff. Right?
+        matches = matches.map((x) => {
+            var index = noSlashesForComparison.indexOf(x);
+            // Yes, there are side effects. Yes, that's smelly, but also gets us around
+            // the "what if I have `spam.txt` AND `/spam.txt` issue?
+            if (index > -1) {
+                var ret = withSlashes[index];
+                noSlashesForComparison.splice(index, 1);
+                withSlashes.splice(index, 1);
+                return ret;
             }
 
-            // minimatch.match returns [] if no matches
-            // https://github.com/isaacs/minimatch#nonull
-            var matches = minimatch.match(
-                // if the include pattern doesn't have a leading slash,
-                // remove any leading slash from the files being compared
-                // too
-                !manip.startsWithSlash(includePattern)
-                    ? manip.removeLeadingSlashes(theseFiles)
-                    : theseFiles,
-                includePattern
-            );
-
-            // Ok, if we stripped a leading slash, put it back. Inefficient, but computers
-            // love doing this stuff. Right?
-            matches = matches.map((x) => {
-                var index = noSlashesForComparison.indexOf(x);
-                // Yes, there are side effects. Yes, that's smelly, but also gets us around
-                // the "what if I have `spam.txt` AND `/spam.txt` issue?
-                if (index > -1) {
-                    var ret = withSlashes[index];
-                    noSlashesForComparison.splice(index, 1);
-                    withSlashes.splice(index, 1);
-                    return ret;
-                }
-
-                return x;
-            });
-
-            // I feel like this is a painfully inefficient operation.
-            allMatches = allMatches.concat(
-                matches.filter((x) => allMatches.indexOf(x) === -1)
-            );
+            return x;
         });
 
-        return allMatches;
+        // I feel like this dedupe is a painfully inefficient operation.
+        allMatches = allMatches.concat(
+            matches.filter((x) => allMatches.indexOf(x) === -1)
+        );
+    });
+
+    return allMatches;
+}
+
+var selectorUtils = {
+    findAllIncludes: function (selector, fullPaths, home) {
+        selectorUtils.normalizeIncludeVsIncludes(selector);
+        utils.debugLog("includes", selector.Includes);
+        return minimatchEngine(selector, fullPaths, home, "Includes");
+    },
+
+    removeAllExcludes: function (selector, fullPaths, home) {
+        selectorUtils.normalizeExcludeVsExcludes(selector);
+        utils.debugLog("Excludes", selector.Excludes);
+
+        var excludes = minimatchEngine(selector, fullPaths, home, "Excludes");
+        return fullPaths.filter((includePath) => excludes.indexOf(includePath) === -1);
     },
 
     normalizeExcludeVsExcludes: function (selector) {
         if (selector.Exclude && !selector.Excludes) {
             selector.Excludes = selector.Exclude;
+            delete selector.Exclude;
         }
 
         if (!selector.Excludes) {
@@ -105,6 +135,7 @@ var selectorUtils = {
         // (Probably so? Maybe not? That's what we're doing now.)
         if (selector.Include && !selector.Includes) {
             selector.Includes = selector.Include;
+            delete selector.Include;
         }
         if (!selector.Includes) {
             selector.Includes = [];
@@ -112,21 +143,6 @@ var selectorUtils = {
         if (!Array.isArray(selector.Includes)) {
             selector.Includes = [selector.Includes];
         }
-    },
-
-    removeAllExcludes: function (selector, theseFiles) {
-        selectorUtils.normalizeExcludeVsExcludes(selector);
-
-        utils.debugLog("Excludes", selector.Excludes);
-
-        selector.Excludes.forEach(
-            (excludePattern) =>
-                (theseFiles = theseFiles.filter(
-                    (path) => !minimatch(path, excludePattern)
-                ))
-        );
-
-        return theseFiles;
     },
 };
 
@@ -141,72 +157,81 @@ function mergeAndDedupe(parentCollection, newFiles) {
     return parentCollection.concat(filesForSelectorDeduped);
 }
 
-function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
-    utils.debugLog({ title: "handleChutzpahSelector", selector, jsonFileParent });
+function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
+    utils.debugLog({
+        title: "handleChutzpahSelector",
+        selector,
+        jsonFileParent: chutzpahJsonFileParent,
+    });
 
     if (!selector.Path) {
-        selector.Path = jsonFileParent;
+        selector.Path = chutzpahJsonFileParent;
     }
 
+    // I don't know that we *have* to ensure the files exist, but to use fs.existsSync,
+    // we have to either get a relative path from where this app *IS RUNNING*
+    // "relative to process.cwd()" https://stackoverflow.com/a/58470609/1028230
+    // rather than from jsonFileParent, of course. So we either need to get a full
+    // path or do some fancy acrobatics.
     var selectorFullPath =
-        selector.Path.startsWith(jsonFileParent) || selector.Path.startsWith("*")
+        selector.Path.startsWith(chutzpahJsonFileParent) || selector.Path.startsWith("*")
             ? selector.Path
-            : nodePath.join(jsonFileParent, selector.Path);
+            : nodePath.join(chutzpahJsonFileParent, selector.Path);
 
     if (fs.existsSync(selectorFullPath)) {
-        var theseFiles;
+        var selectorMatchesFullPaths;
         var pathIsDir = fs.statSync(selectorFullPath).isDirectory();
 
         if (pathIsDir) {
-            // Taking off the trailing "/" so that when we use it to replace
-            // full paths, the relative paths still start with /
-            // That's wack for single files, but we have a fix for that coming...
-            if (selectorFullPath.endsWith("/") || selectorFullPath.endsWith("\\")) {
-                selectorFullPath = selectorFullPath.substring(
-                    0,
-                    selectorFullPath.length - 1
-                );
-            }
-
-            // TODO: This will throw on a bogus path (but we checkd with existsSync)
+            // 1. Get all files in this and any subdirectory.
+            // TODO: This will throw on a bogus path (but we checked with existsSync)
             // and return [] on an empty folder.
-            theseFiles = fileSystemService.getAllFilePaths(selectorFullPath);
+            selectorMatchesFullPaths =
+                fileSystemService.getAllFilePaths(selectorFullPath);
 
-            // When we minimatch, we want to do it relative to the parent
-            // path.
-            // Otherwise "*.js" will never match anything, since we
-            // have full paths in the getAllFilePaths results.
-            theseFiles = theseFiles.map((x) => x.replace(selectorFullPath, ""));
-
+            // 2. Run the file paths against include & exclude globs from config.
             utils.debugLog(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
-${JSON.stringify(theseFiles, null, "  ")}
+${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
 
-            theseFiles = selectorUtils.findAllIncludes(selector, theseFiles);
-            theseFiles = selectorUtils.removeAllExcludes(selector, theseFiles);
+            selectorMatchesFullPaths = selectorUtils.findAllIncludes(
+                selector,
+                selectorMatchesFullPaths,
+                chutzpahJsonFileParent
+            );
+            selectorMatchesFullPaths = selectorUtils.removeAllExcludes(
+                selector,
+                selectorMatchesFullPaths,
+                chutzpahJsonFileParent
+            );
+
+            debugger;
+            process.exit();
 
             // Now let's put the full paths back (we'll remove the original
             // root directory before we write to an html file).
-            theseFiles = theseFiles.map((x) =>
+            selectorMatchesFullPaths = selectorMatchesFullPaths.map((x) =>
                 isWindows
                     ? `${selectorFullPath}${x.startsWith("\\") ? x : "\\" + x}`
                     : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
             );
 
             utils.debugLog(`and after filtering:
-            ${JSON.stringify(theseFiles, null, "  ")}
+            ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
         } else {
-            theseFiles = [nodePath.join(jsonFileParent, selector.Path)];
+            selectorMatchesFullPaths = [
+                nodePath.join(chutzpahJsonFileParent, selector.Path),
+            ];
         }
 
-        return theseFiles;
+        return selectorMatchesFullPaths;
     }
 
-    utils.debugLog(`${selectorFullPath} from json does not exist`);
+    console.warn(`${selectorFullPath} from json does not exist`);
     return [];
 }
 
@@ -459,15 +484,25 @@ if (require.main === module) {
     const myArgs = process.argv.slice(2);
     utils.debugLog("myArgs: ", myArgs);
 
-    fileSystemService
-        .getFileContents("C:\\temp\\chutzpahTestValues.json")
-        .then(function (jsonContents) {
-            var chutzpahTestValues = JSON.parse(jsonContents);
+    fileSystemService.getFileContents("C:\\temp\\chutzpahTestValues.json").then(
+        (testValueFileContents) => {
+            var testConfigPath = JSON.parse(testValueFileContents).singleChutzpah;
 
-            getConfigInfo(chutzpahTestValues.configPath).then((values) => {
-                var valuesAsString = JSON.stringify(values, null, "  ");
-                utils.debugLog(valuesAsString);
-                fs.writeFileSync("C:\\temp\\values.json", valuesAsString);
-            });
-        });
+            fileSystemService.getFileContents(testConfigPath).then(
+                getConfigInfo(testConfigPath).then(
+                    (values) => {
+                        var valuesAsString = JSON.stringify(values, null, "  ");
+                        utils.debugLog(valuesAsString);
+                        fs.writeFileSync(
+                            "C:\\temp\\parsedChutzpahValues.json",
+                            valuesAsString
+                        );
+                    },
+                    (err) => console.error("2", err)
+                ),
+                (err) => console.error("1", err)
+            );
+        },
+        (err) => console.error("0", err)
+    );
 }
