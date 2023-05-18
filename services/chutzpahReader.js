@@ -207,19 +207,8 @@ ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
                 chutzpahJsonFileParent
             );
 
-            debugger;
-            process.exit();
-
-            // Now let's put the full paths back (we'll remove the original
-            // root directory before we write to an html file).
-            selectorMatchesFullPaths = selectorMatchesFullPaths.map((x) =>
-                isWindows
-                    ? `${selectorFullPath}${x.startsWith("\\") ? x : "\\" + x}`
-                    : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
-            );
-
             utils.debugLog(`and after filtering:
-            ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
+    ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
         } else {
@@ -311,12 +300,8 @@ function coverageAggressiveStar(s) {
     return s.replace(re, starReplacer);
 }
 
-function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
-    if (!chutzpahConfigObj.NoAggressiveStar) {
-        handleAggressiveStar(chutzpahConfigObj);
-    }
-
-    // GET ALL REFERENCE FILES (files needed to run stuff)
+// GET ALL REFERENCE FILES (files needed to run stuff)
+function getRefFiles(chutzpahConfigObj, jsonFileParent) {
     var allRefFilePaths = [];
     chutzpahConfigObj.References.forEach(function (singleReferenceEntry, i) {
         var filesForSelector = handleChutzpahSelector(
@@ -335,10 +320,15 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
         allRefFilePaths,
         "References"
     );
-    allRefFilePaths = allRefFilePaths.map((x) =>
-        x.replace(jsonFileParent.replace(/\\/g, "/"), "")
-    );
 
+    // allRefFilePaths = allRefFilePaths.map((x) =>
+    //     x.replace(jsonFileParent.replace(/\\/g, "/"), "")
+    // );
+
+    return allRefFilePaths;
+}
+
+function getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent) {
     // GET ALL FILES THAT HAVE TESTS TO RUN
     var specFiles = [];
     if (!singleTestFile) {
@@ -348,30 +338,14 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
             specFiles = mergeAndDedupe(specFiles, filesForSelector);
         });
     } else {
-        // TODO: not sure what the commented out stuff was doing.
-        // var parentAtStart = `^${jsonFileParent}`;
-        // var reParentAtStart = new RegExp(parentAtStart, "i");
-        // var singleFileWithParentRemoved = singleTestFile.replace(reParentAtStart, "");
-        // specFiles = [singleFileWithParentRemoved];
         specFiles = [singleTestFile];
     }
 
     specFiles = fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
-    specFiles = specFiles.map((x) => x.replace(jsonFileParent.replace(/\\/g, "/"), ""));
+    return specFiles;
+}
 
-    if (!specFiles.length) {
-        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
-    }
-
-    // REMOVE ANY SPEC FILES FOUND IN REFERENCES
-    // Chutzpah doesn't seem to make a distinction between what should be referenced
-    // and what should be tested -- or, more specifically, you can ref tests without
-    // causing an issue (I think?).
-    // Let's remove any test files from our ref files so they're not duplicated.
-    // (I mean, I guess it'd work with them, but you get the point that tests shouldn't
-    //  be coverage tested.)
-    allRefFilePaths = allRefFilePaths.filter((path) => specFiles.indexOf(path) === -1);
-
+function getCoverageFiles(chutzpahConfigObj, allRefFilePaths) {
     var coverageFiles = [];
 
     if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
@@ -395,6 +369,37 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     }
 
     // TODO: CodeCoverageExcludes
+    console.warn("TODO: CodeCoverageExcludes");
+
+    return coverageFiles;
+}
+
+// 1. Recurse folders, match, and get ref files
+// 2. Get spec files
+// 3. Get coverage files
+// 4. Return results as a single object.
+function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
+    if (!chutzpahConfigObj.NoAggressiveStar) {
+        handleAggressiveStar(chutzpahConfigObj);
+    }
+
+    var allRefFilePaths = getRefFiles(chutzpahConfigObj, jsonFileParent);
+    var specFiles = getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent);
+
+    if (!specFiles.length) {
+        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
+    }
+
+    // REMOVE ANY SPEC FILES FOUND IN REFERENCES
+    // Chutzpah doesn't seem to make a distinction between what should be referenced
+    // and what should be tested -- or, more specifically, you can ref tests in that tool
+    // without causing an issue (I think?).
+    // Let's remove any test files from our ref files so they're not duplicated.
+    // (I mean, I guess it'd work with them, but you get the point that tests shouldn't
+    //  be coverage tested.)
+    allRefFilePaths = allRefFilePaths.filter((path) => specFiles.indexOf(path) === -1);
+
+    var coverageFiles = getCoverageFiles(chutzpahConfigObj, allRefFilePaths);
 
     return {
         allRefFilePaths,
@@ -431,6 +436,26 @@ function findChutzpahJson(startPath) {
     return foundChutzpahJson;
 }
 
+// ===============================================================================================
+// 1. findChutzpahJson: Finds chutzpah config using original path (the function's only parameter)
+//      * can be a test file or a folder.
+//      * find closest Chutzpah.json (by name)
+//          file at that folder (or file's parent folder) or "lower"
+// 2. fileSystemService.getFileContents (Promise returned): Get json file's contents.
+// 3. parseChutzpahInfo: Send contents as POJSO and process into object with these properties:
+//      * allRefFilePaths,
+//      * specFiles,
+//      * coverageFiles,
+// 4. Return object with info from 3. plus some initialization info
+//      return {
+//          originalTestPath,
+//          configFilePath,
+//          jsonFileParent,
+//          allRefFilePaths: info.allRefFilePaths,
+//          specFiles: info.specFiles,
+//          coverageFiles: info.coverageFiles,
+//      };
+// ===============================================================================================
 function getConfigInfo(originalTestPath) {
     var configFilePath = findChutzpahJson(originalTestPath);
 
