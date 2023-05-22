@@ -498,11 +498,6 @@ function getConfigInfo(originalTestPath) {
     });
 }
 
-module.exports = {
-    getConfigInfo,
-    findChutzpahJson, // okay, this was made public only for testing. That's bad.
-};
-
 if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
@@ -531,3 +526,8 @@ if (require.main === module) {
         (err) => console.error("0", err)
     );
 }
+
+module.exports = {
+    getConfigInfo,
+    findChutzpahJson, // okay, this was made public only for testing. That's bad.
+};

@@ -32,10 +32,6 @@ function startRunner(homeDirPath, runnerSource) {
     utils.debugLog("Express home dir: " + homeDirPath);
     app.use("/", express.static(homeDirPath));
 
-    // app.listen(port, function () {
-    //     utils.debugLog(`Example app listening on port ${port}!`);
-    // });
-
     return app;
 }
 
