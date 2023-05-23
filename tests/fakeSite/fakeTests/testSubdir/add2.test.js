@@ -1,3 +1,4 @@
+/*global window */
 describe("these are not real tests", function () {
     "use strict";
 
@@ -15,7 +16,7 @@ describe("these are not real tests", function () {
     });
 
     describe("add2broken function in global scope", function () {
-        it("should return a value that is 2 greater than that which was pushed in", function () {
+        it("(should FAIL) should return a value that is 2 greater than that which was pushed in", function () {
             // arrange
             var x = 5;
 

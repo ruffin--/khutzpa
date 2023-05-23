@@ -3,6 +3,13 @@
     "Framework": "jasmine",
     "FrameworkVersion": "3",
     "Engine": "JSDom",
+
+    // https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File
+    // By default (the DriveRoot setting) if you write Chutzpah will look for a.js under C:\
+    // (assuming you are running your test in the C drive).
+    // However, if you set this property to SettingsFileDirectory Chutpah will now look for a.js
+    // relative to the location of the chutzpah.json file.
+    // This is useful if you have a large project and want to minimize the number of long reference paths.
     "RootReferencePathMode": "SettingsFileDirectory",
     "TestFileTimeout": 10000,
     "CodeCoverageTimeout": 10000,
@@ -22,7 +29,7 @@
         {
             // remember this is relative to the json file's parent.
             "Path": "/",
-            "Includes": "/**/*.test.js"
+            "Includes": "**/*.test.js"
         }
     ],
     "CodeCoverageIncludes": ["**/*.js"],
