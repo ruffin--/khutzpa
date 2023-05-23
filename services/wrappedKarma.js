@@ -3,86 +3,21 @@
  * test suite when exexcuted.
  ************************************************/
 const karma = require("karma");
+
+const karmaConfigTools = require("./karmaConfigTools");
 const stringManipulation = require("../helpers/stringManipulation");
 const utils = require("../helpers/utils");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
 
-function logit(x) {
-    // utils.debugLog(JSON.stringify(x, null, "  "));
-}
-
-const createKarmaConfig = function (overrides) {
-    var baseConfig = {
-        // base path that will be used to resolve all patterns (eg. files, exclude)
-        basePath: "./",
-
-        // frameworks to use
-        // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ["jasmine"],
-
-        // list of files / patterns to load in the browser
-        files: [{ pattern: "**/*.js" }],
-
-        // list of files / patterns to exclude
-        exclude: ["**/node_modules/**/"],
-
-        // preprocess matching files before serving them to the browser
-        // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
-        // preprocessors: {},
-        preprocessors: {
-            "**/!(*test).js": ["coverage"],
-            // './fakeCode/add2.js': ['coverage'],
-        },
-
-        // test results reporter to use
-        // possible values: 'dots', 'progress'
-        // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
-        reporters: ["coverage", "mocha"],
-        // reporters: ['progress', 'coverage'],
-
-        // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
-        coverageReporter: {
-            reporters: [
-                { type: "text-summary" },
-                { type: "html", dir: "../coverage/" },
-                { type: "text", dir: "coverage/", file: "coverage.txt" },
-            ],
-        },
-
-        // web server port
-        port: 9876,
-
-        // enable / disable colors in the output (reporters and logs)
-        colors: true,
-
-        // level of logging
-        // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-        logLevel: karma.config.LOG_DEBUG,
-
-        // enable / disable watching file and executing tests whenever any file changes
-        autoWatch: true,
-
-        // start these browsers
-        // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher
-        browsers: ["Chrome"],
-
-        // Continuous Integration mode
-        // if true, Karma captures browsers, runs the tests and exits
-        singleRun: true,
-
-        // Concurrency level
-        // how many browser instances should be started simultaneously
-        concurrency: Infinity,
-    };
-
-    return Object.assign({}, baseConfig, overrides);
-};
-
 function startKarma(karmaRunId, overrides) {
-    var karmaConfig = createKarmaConfig(overrides);
-    // logit(karmaConfig);
+    overrides = Object.assign(
+        {},
+        karmaConfigTools.overridesForMochaTestingRun,
+        overrides
+    );
+    var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
 
     karmaConfig.files.forEach((x, i) => {
         if (stringManipulation.isString(x) && stringManipulation.startsWithSlash(x)) {
@@ -182,9 +117,7 @@ function runWrappedKarma(configInfo, karmaRunId) {
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
     };
-    logit("config overrides for karma:", overrides);
-
-    utils.debugLog(overrides);
+    utils.debugLog("config overrides for karma:", overrides);
 
     return startKarma(karmaRunId, overrides);
 }
@@ -193,7 +126,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    logit("myArgs: ", myArgs);
+    utils.debugLog("myArgs: ", myArgs);
 
     var karmaRunId = "unique value";
     karmaRunIds.push(karmaRunId);

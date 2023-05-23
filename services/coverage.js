@@ -3,96 +3,18 @@ const Server = karma.Server;
 const fs = require("fs");
 const nodePath = require("node:path");
 const opener = require("opener");
+
+const karmaConfigTools = require("./karmaConfigTools");
 const expressServer = require("./expressServer");
 const stringManipulation = require("../helpers/stringManipulation");
 const utils = require("../helpers/utils");
 
-const createKarmaConfig = function (overrides) {
-    var baseConfig = {
-        // Continuous Integration mode
-        // if true, Karma captures browsers, runs the tests and exits
-        singleRun: true,
-        // singleRun: false,
-
-        // enable / disable watching file and executing tests whenever any file changes
-        autoWatch: false,
-
-        basePath: "/",
-        files: [{ pattern: "**/*.js", nocache: true }],
-        // exclude: ["**/External/**/*.js"],
-        // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
-        // these should be source files, that you want to generate coverage for
-        // do not include tests or libraries (these files will be instrumented by Istanbul)
-        preprocessors: {
-            "**/!(*test).js": ["coverage"],
-        },
-
-        // ========================================================
-        // End of stuff we'd typically change per run ^^^^
-        // ========================================================
-
-        // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ["jasmine"],
-
-        // test results reporter to use
-        // possible values: 'dots', 'progress'
-        // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
-        // coverage reporter generates the coverage
-        reporters: ["progress", "coverage"],
-
-        // optionally, configure the reporter
-        coverageReporter: {
-            type: "html",
-            dir: "coverage/",
-        },
-
-        // web server port
-        port: 9876,
-        // enable / disable colors in the output (reporters and logs)
-        colors: true,
-        // level of logging
-        // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-        logLevel: karma.constants.LOG_DEBUG,
-
-        // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher
-        browsers: ["Chrome"],
-
-        // Concurrency level
-        // how many browser instances should be started simultaneously
-        concurrency: Infinity,
-        browserConsoleLogOptions: { level: "debug", format: "%b %T: %m", terminal: true },
-    };
-
-    return Object.assign({}, baseConfig, overrides);
-};
-
-/*
-http://karma-runner.github.io/6.4/config/files.html#complete-example
-files: [
-
-  // Detailed pattern to include a file. Similarly other options can be used
-  { pattern: 'lib/angular.js', watched: false },
-  // Prefer to have watched false for library files. No need to watch them for changes
-
-  // simple pattern to load the needed testfiles
-  // equal to {pattern: 'test/unit/*.spec.js', watched: true, served: true, included: true}
-  'test/unit/*.spec.js',
-
-  // this file gets served but will be ignored by the watcher
-  // note if html2js preprocessor is active, reference as `window.__html__['compiled/index.html']`
-  {pattern: 'compiled/index.html', watched: false},
-
-  // this file only gets watched and is otherwise ignored
-  {pattern: 'app/index.html', included: false, served: false},
-
-  // this file will be served on demand from disk and will be ignored by the watcher
-  {pattern: 'compiled/app.js.map', included: false, served: true, watched: false, nocache: true}
-],
-*/
 function startKarma(overrides) {
-    var serverHasStarted = false;
-    var karmaConfig = createKarmaConfig(overrides);
+    overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
+    var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
     utils.debugLog(karmaConfig);
+
+    var serverHasStarted = false;
 
     karmaConfig.files.forEach((x, i) => {
         if (stringManipulation.startsWithSlash(x)) {
@@ -178,6 +100,11 @@ last modified: ${statsObj.mtimeMs},
                                     `http://localhost:${expressPort}/index.html`
                                 );
                                 utils.debugLog("handle pid: " + handle.pid);
+
+                                console.warn(
+                                    "Please note that stopping this process can replace " +
+                                        "your coverage report with a 404 error. Please stop on when you're ready."
+                                );
                             }
                         } else {
                             console.warn("No coverage directory found!");
