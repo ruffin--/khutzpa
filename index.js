@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
+const prompt = require("prompt-sync")({ sigint: true });
+const fs = require("fs");
+
 const chutzpahConfigReader = require("./services/chutzpahReader");
 const specRunner = require("./services/runJasmineSpecs");
 const coverageRunner = require("./services/coverage");
 const server = require("./services/expressServer");
 const wrappedKarma = require("./services/wrappedKarma");
 const utils = require("./helpers/utils");
-
-const prompt = require("prompt-sync")({ sigint: true });
-const fs = require("fs");
 
 // https://github.com/domenic/opener
 const opener = require("opener");
@@ -128,8 +128,10 @@ khutzpa /path/to/root/directory /{command}
 
     /openInBrowser
     /coverage
+    /runAllSuites
+    /runOne
     /findAllSuites
-    /runallSuites
+    /walkAllRunOne
     /usage`);
     }
 
@@ -183,8 +185,7 @@ if (require.main === module) {
             ? actionTypes.RUN_ALL_CHUTZPAHS
             : myArgs.indexOf("/walkAllRunOne") > -1
             ? actionTypes.WALK_ALL_RUN_ONE
-            : myArgs.indexOf("/runOneChutzpah") > -1 ||
-              myArgs.indexOf("/runOneInKarma") > -1
+            : myArgs.indexOf("/runOne") > -1
             ? actionTypes.RUN_ONE_IN_KARMA
             : actionTypes.PRINT_USAGE;
 
