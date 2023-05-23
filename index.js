@@ -51,7 +51,9 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
                         );
                         utils.debugLog(handle);
 
-                        return 1;
+                        // this prevents the process.exit call.
+                        // TODO: This is an ugly hack. Do better.
+                        return undefined;
                     },
                     function (err) {
                         console.error(err);
@@ -199,10 +201,17 @@ if (require.main === module) {
     cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
         utils.debugLog("done");
 
-        if (resultsIfAny) {
+        if (Array.isArray(resultsIfAny) && !resultsIfAny.every((x) => x === undefined)) {
             utils.debugLog("::RESULTS::");
             utils.debugLog(resultsIfAny);
             utils.debugLog("::eoRESULTS::");
+
+            const firstError = resultsIfAny.find((x) => x && x !== 0);
+
+            // On Windows, to see the returned code (https://stackoverflow.com/a/334893/1028230):
+            // cmd.exe: echo %ERRORLEVEL%
+            // pwsh.exe: echo $LastExitCode
+            process.exit(firstError || 0);
         }
     });
 }
