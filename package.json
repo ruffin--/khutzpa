@@ -2,8 +2,8 @@
     "name": "khutzpa",
     "version": "0.0.1-alpha.5",
     "description": "Node powered, cross-platform, drop-in replacement for Chutzpah.exe",
-    "x-main": "index.js",
-    "x-bin": "index.js",
+    "main": "index.js",
+    "bin": "index.js",
     "scripts": {
         "test": "node ./tests/jsonReaderTests.js"
     },
