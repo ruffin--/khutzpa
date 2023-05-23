@@ -455,12 +455,7 @@ function getConfigInfo(originalTestPath) {
         throw "invalid/empty config file";
     }
 
-    if (configFilePath.startsWith(".")) {
-        throw (
-            "Path to Chutzpah.json must be absolute. This starts with a dot: " +
-            configFilePath
-        );
-    }
+    configFilePath = nodePath.resolve(configFilePath);
 
     utils.debugLog("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
