@@ -9,14 +9,11 @@ const utils = require("./helpers/utils");
 
 const prompt = require("prompt-sync")({ sigint: true });
 const fs = require("fs");
-const nodePath = require("node:path");
+
 // https://github.com/domenic/opener
 const opener = require("opener");
 const chutzpahWalk = require("./services/chutzpahWalk");
-
-// 1. Everything needs a read Chutzpah.json first.
-// 2. Open in Browser creates a spec/runner file.
-// every reference pushed into script tags in configInfoToTestRunnerScript
+const { findTheRoot } = require("./helpers/findTheRoot");
 
 function cmdCallHandler(startingFilePath, expressPort, actionType) {
     var fnAction = () => {
@@ -36,12 +33,12 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             utils.debugLog("open in browser");
 
             fnAction = function (configInfo) {
-                return specRunner.createSpecHtml(configInfo).then(
+                var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+                var root = findTheRoot(allFiles);
+
+                return specRunner.createSpecHtml(configInfo, false, root).then(
                     (results) => {
-                        var serverApp = server.startRunner(
-                            nodePath.dirname(results.configFilePath),
-                            results.runnerHtml
-                        );
+                        var serverApp = server.startRunner(root, results.runnerHtml);
 
                         serverApp.listen(expressPort, function () {
                             utils.debugLog(
@@ -73,21 +70,26 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
         case actionTypes.RUN_ALL_CHUTZPAHS:
             utils.debugLog("run all the chutzpahs");
 
-            console.warn("Need to undo the testing stuff here");
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
         case actionTypes.FIND_ALL_CHUTZPAHS:
             utils.debugLog("FIND all the chutzpahs but don't run them");
-
             staticPayload = chutzpahWalk.walk(startingFilePath);
             runEachPromise = false;
             break;
 
+        case actionTypes.RUN_ONE_IN_KARMA:
+            // note that this (and other walk-less actions) uses
+            // chutzpahConfigLocs = [startingFilePath];
+            // instead of the results of a walk.
+            utils.debugLog("Run one in karma");
+            fnAction = wrappedKarma.runWrappedKarma;
+            break;
+
         case actionTypes.WALK_ALL_RUN_ONE:
             utils.debugLog("walk all run one");
-            utils.debugLog("Walking file hierarchy for Chutzpah.json files");
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
 
             if (chutzpahConfigLocs.length) {
@@ -161,6 +163,7 @@ var actionTypes = {
     FIND_ALL_CHUTZPAHS: 4,
     WALK_ALL_RUN_ONE: 5,
     PRINT_USAGE: 6,
+    RUN_ONE_IN_KARMA: 7,
 };
 
 if (require.main === module) {
@@ -178,8 +181,11 @@ if (require.main === module) {
             ? actionTypes.FIND_ALL_CHUTZPAHS
             : myArgs.indexOf("/runAllSuites") > -1
             ? actionTypes.RUN_ALL_CHUTZPAHS
-            : myArgs.indexOf("/walkAllRunOne")
+            : myArgs.indexOf("/walkAllRunOne") > -1
             ? actionTypes.WALK_ALL_RUN_ONE
+            : myArgs.indexOf("/runOneChutzpah") > -1 ||
+              myArgs.indexOf("/runOneInKarma") > -1
+            ? actionTypes.RUN_ONE_IN_KARMA
             : actionTypes.PRINT_USAGE;
 
     var filePath = myArgs.shift();
