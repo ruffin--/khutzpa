@@ -29,7 +29,9 @@
         {
             // remember this is relative to the json file's parent.
             "Path": "/",
-            "Includes": "**/*.test.js"
+            "Includes": "**/*.test.js",
+            // "Excludes": ["**/karma.test.js", "**/add2.test.js"] // no failing tests
+            "Excludes": ["**/karma.test.js"] // with one failing test
         }
     ],
     "CodeCoverageIncludes": ["**/*.js"],
