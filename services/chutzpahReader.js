@@ -1,125 +1,38 @@
 /* eslint-disable quotes */
 const fs = require("fs");
-const fsPromises = require("fs").promises;
 const minimatch = require("minimatch");
 // NOTE: node:path requires node v16+
 const nodePath = require("node:path");
 const Os = require("os");
+const fileSystemService = require("./fileSystemService");
+const manip = require("../helpers/stringManipulation");
+const utils = require("../helpers/utils");
+
 // const { config } = require("process");
 
 const isWindows = Os.platform() === "win32";
-console.log("isWindows? " + isWindows);
-const slash = isWindows ? "\\" : "/";
+utils.debugLog("isWindows? " + isWindows);
 
-function findChutzpahJson(startPath) {
-    if (!fs.existsSync(startPath)) {
-        throw `Invalid start path: ${startPath}`;
-    }
-
-    // ????: Should we care about other types? Should we
-    // be ready for any extension? This is kinda offensively programmed.
-    var possibleDir = startPath.toLowerCase().endsWith(".js")
-        ? nodePath.dirname(startPath)
-        : startPath;
-
-    var foundChutzpahJson = undefined;
-    while (!foundChutzpahJson) {
-        console.log("checking: " + possibleDir);
-        var tryHere = nodePath.join(possibleDir, "Chutzpah.json");
-        if (fs.existsSync(tryHere)) {
-            foundChutzpahJson = tryHere;
-        } else {
-            var newPossibleDir = nodePath.dirname(possibleDir);
-            if (newPossibleDir === possibleDir) {
-                throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
-            }
-            possibleDir = newPossibleDir;
-            // console.log("Next dir up: " + possibleDir);
-        }
-    }
-
-    return foundChutzpahJson;
+// We have two competing issues here...
+// A. *.js style globs only match files in the root dir.
+// B. minimatch always fails to match ../s in paths.
+//      https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
+//      (It looked like optimizationLevel:2 would change that, but it doesn't.)
+//      (Appears that's b/c you're using v5, not v7+)
+//      https://github.com/isaacs/minimatch/blob/main/changelog.md
+// That means B. wants full paths, but A doesn't want a full path appended.
+// That conflict makes it tough to use paths as single strings.
+// Full path doesn't work A & B. Hacks are hard to match back up.
+function hasRelativeOrFullPathMatch(fullPath, home, glob) {
+    var relative = nodePath.relative(home, fullPath);
+    var valueForDebugging = minimatch(relative, glob) || minimatch(fullPath, glob);
+    return valueForDebugging;
 }
 
-// mostly https://stackoverflow.com/a/56188301/1028230
-function sniffEncoding(filePath) {
-    /*eslint-disable new-cap */
-    var d = new Buffer.alloc(5, [0, 0, 0, 0, 0]);
-    /*eslint-enable new-cap */
-    var fd = fs.openSync(filePath, "r");
-    fs.readSync(fd, d, 0, 5, 0);
-    fs.closeSync(fd);
-
-    // If clear UTF16 BOM, then display as
-    /* eslint-disable indent */
-    var encodingValue =
-        d[0] === 0xfe && d[1] === 0xff
-            ? "utf16be"
-            : d[0] === 0xff && d[1] === 0xfe
-            ? "utf16le"
-            : "utf8";
-    /* eslint-enable indent */
-
-    return {
-        value: encodingValue,
-        bom: encodingValue === "utf8" && d[0] === 0xef && d[1] === 0xbb && d[2] === 0xbf,
-    };
-}
-
-function getFileContents(filePath) {
-    var encoding = sniffEncoding(filePath);
-    return fsPromises.readFile(filePath, encoding.value).then(function (contents) {
-        contents =
-            encoding.bom && encoding.value === "utf8"
-                ? contents.replace(/^\uFEFF/, "")
-                : contents;
-
-        return contents.replace(/\/\/.*[\r\n]+/g, "");
-    });
-}
-
-function getAllFilePaths(dirPath, arrayOfFiles) {
-    var files = fs.readdirSync(dirPath);
-
-    arrayOfFiles = arrayOfFiles || [];
-
-    files.forEach(function (file) {
-        var fullPath = nodePath.join(dirPath, file);
-        if (fs.statSync(fullPath).isDirectory()) {
-            arrayOfFiles = getAllFilePaths(fullPath, arrayOfFiles);
-        } else {
-            arrayOfFiles.push(fullPath);
-        }
-    });
-
-    return arrayOfFiles;
-}
-
-// the problem here is that regardless of if we're on windows now or not,
-// the Chutzpah.json file doesn't know that. So check for both slash types
-// every time.
-function startsWithSlash(str) {
-    return str.startsWith("/") || str.startsWith("\\");
-}
-
-function removeLeadingSlashes(stringCollection) {
-    if (!Array.isArray(stringCollection)) {
-        stringCollection = [stringCollection];
-    }
-
-    return Array.isArray(stringCollection)
-        ? stringCollection.map((str) => (startsWithSlash(str) ? str.substring(1) : str))
-        : startsWithSlash(stringCollection)
-        ? stringCollection.substring(1)
-        : stringCollection;
-}
-
-function findAllIncludes(selector, theseFiles) {
+function minimatchEngine(selector, fullPaths, home, selectorName) {
     var allMatches = [];
 
-    cleanIncludes(selector);
-
-    console.log("includes", selector.Includes);
+    selectorName = selectorName || "Includes";
 
     // TODO: You may also need to solve the asterisk interpretation issue.
     // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
@@ -129,27 +42,20 @@ function findAllIncludes(selector, theseFiles) {
     // If that's accurate, that's not how globs in minimatch work.
     //
     // Below: Trying to solve the minimatch starting slash issue.
-    selector.Includes.forEach(function (includePattern) {
+    selector[selectorName].forEach(function (includePattern) {
         // if the pattern doesn't have a leading slash but our files do,
-        // that's an issue. remove them for the comparison and then...
-        // put them back?
+        // that's an issue, since that seems to mean "root of *relative*
+        // path to Chutzpah instead of root of file system to minimatch.
+        // Then remember which paths were doctored and restore them after.
         var withSlashes = [];
         var noSlashesForComparison = [];
-        if (!startsWithSlash(includePattern)) {
-            withSlashes = theseFiles.filter((x) => startsWithSlash(x));
-            noSlashesForComparison = removeLeadingSlashes(withSlashes);
+        if (!manip.startsWithSlash(includePattern)) {
+            withSlashes = fullPaths.filter((x) => manip.startsWithSlash(x));
+            noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
         }
 
-        // minimatch.match returns [] if no matches
-        // https://github.com/isaacs/minimatch#nonull
-        var matches = minimatch.match(
-            // if the include pattern doesn't have a leading slash,
-            // remove any leading slash from the files being compared
-            // too
-            !startsWithSlash(includePattern)
-                ? removeLeadingSlashes(theseFiles)
-                : theseFiles,
-            includePattern
+        var matches = fullPaths.filter((singleFullPath) =>
+            hasRelativeOrFullPathMatch(singleFullPath, home, includePattern)
         );
 
         // Ok, if we stripped a leading slash, put it back. Inefficient, but computers
@@ -168,7 +74,7 @@ function findAllIncludes(selector, theseFiles) {
             return x;
         });
 
-        // I feel like this is a painfully inefficient operation.
+        // I feel like this dedupe is a painfully inefficient operation.
         allMatches = allMatches.concat(
             matches.filter((x) => allMatches.indexOf(x) === -1)
         );
@@ -177,153 +83,146 @@ function findAllIncludes(selector, theseFiles) {
     return allMatches;
 }
 
-function cleanExcludes(selector) {
-    if (selector.Exclude && !selector.Excludes) {
-        selector.Excludes = selector.Exclude;
-    }
+var selectorUtils = {
+    findAllIncludes: function (selector, fullPaths, home) {
+        selectorUtils.normalizeIncludeVsIncludes(selector);
+        utils.debugLog("includes", selector.Includes);
+        return minimatchEngine(selector, fullPaths, home, "Includes");
+    },
 
-    if (!selector.Excludes) {
-        selector.Excludes = [];
-    }
-    if (!Array.isArray(selector.Excludes)) {
-        selector.Excludes = [selector.Excludes];
-    }
-}
+    removeAllExcludes: function (selector, fullPaths, home) {
+        selectorUtils.normalizeExcludeVsExcludes(selector);
+        utils.debugLog("Excludes", selector.Excludes);
 
-function cleanIncludes(selector) {
-    // TODO: The Chutzpah docs say these are both plural,
-    // but I'm seeing json files with, eg, Include instead of
-    // Includes.
-    // https://github.com/mmanela/chutzpah/wiki/references-setting
-    // I'm not supporting both; this privileges Include singular over
-    // Includes plural, erasing plural if singular exists. Is that smart?
-    //
-    // Also, if a selector doesn't exist, should we return everything?
-    // (Probably so? Maybe not? That's what we're doing now.)
-    if (selector.Include && !selector.Includes) {
-        selector.Includes = selector.Include;
-    }
-    if (!selector.Includes) {
-        selector.Includes = [];
-    }
-    if (!Array.isArray(selector.Includes)) {
-        selector.Includes = [selector.Includes];
-    }
-}
+        var excludes = minimatchEngine(selector, fullPaths, home, "Excludes");
+        return fullPaths.filter((includePath) => excludes.indexOf(includePath) === -1);
+    },
 
-function removeAllExcludes(selector, theseFiles) {
-    cleanExcludes(selector);
+    normalizeExcludeVsExcludes: function (selector) {
+        if (selector.Exclude && !selector.Excludes) {
+            selector.Excludes = selector.Exclude;
+            delete selector.Exclude;
+        }
 
-    console.log("Excludes", selector.Excludes);
+        if (!selector.Excludes) {
+            selector.Excludes = [];
+        }
+        if (!Array.isArray(selector.Excludes)) {
+            selector.Excludes = [selector.Excludes];
+        }
+    },
 
-    selector.Excludes.forEach(
-        (excludePattern) =>
-            (theseFiles = theseFiles.filter((path) => !minimatch(path, excludePattern)))
+    normalizeIncludeVsIncludes: function (selector) {
+        // TODO: The Chutzpah docs say these are both plural,
+        // but I'm seeing json files with, eg, Include instead of
+        // Includes.
+        // https://github.com/mmanela/chutzpah/wiki/references-setting
+        //
+        // Same with excludes, above.
+        //
+        // I'm not supporting both; this privileges Include singular over
+        // Includes plural, erasing plural if singular exists. Is that smart?
+        //
+        // Also, if a selector doesn't exist, should we return everything?
+        // (Probably so? Maybe not? That's what we're doing now.)
+        if (selector.Include && !selector.Includes) {
+            selector.Includes = selector.Include;
+            delete selector.Include;
+        }
+        if (!selector.Includes) {
+            selector.Includes = [];
+        }
+        if (!Array.isArray(selector.Includes)) {
+            selector.Includes = [selector.Includes];
+        }
+    },
+};
+
+function mergeAndDedupe(parentCollection, newFiles) {
+    // let's standardize on *NIX paths.
+    // TODO: I think there's a node function for this.
+    newFiles.forEach((x, i) => (newFiles[i] = x.replace(/\\/g, "/")));
+    var filesForSelectorDeduped = newFiles.filter(
+        (x) => parentCollection.indexOf(x) === -1
     );
 
-    return theseFiles;
+    return parentCollection.concat(filesForSelectorDeduped);
 }
 
-// Looks like I might need to keep track of platform (Windows vs. *NIX)
-function handleChutzpahSelector(selector, jsonFileParent, type, nth) {
-    console.log({ title: "handleChutzpahSelector", selector, jsonFileParent });
+function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
+    utils.debugLog({
+        title: "handleChutzpahSelector",
+        selector,
+        jsonFileParent: chutzpahJsonFileParent,
+    });
 
     if (!selector.Path) {
-        selector.Path = jsonFileParent;
+        selector.Path = chutzpahJsonFileParent;
     }
 
+    // I don't know that we *have* to ensure the files exist, but to use fs.existsSync,
+    // we have to either get a relative path from where this app *IS RUNNING*
+    // "relative to process.cwd()" https://stackoverflow.com/a/58470609/1028230
+    // rather than from jsonFileParent, of course. So we either need to get a full
+    // path or do some fancy acrobatics.
     var selectorFullPath =
-        selector.Path.startsWith(jsonFileParent) || selector.Path.startsWith("*")
+        selector.Path.startsWith(chutzpahJsonFileParent) || selector.Path.startsWith("*")
             ? selector.Path
-            : nodePath.join(jsonFileParent, selector.Path);
+            : nodePath.join(chutzpahJsonFileParent, selector.Path);
 
     if (fs.existsSync(selectorFullPath)) {
-        var theseFiles;
+        var selectorMatchesFullPaths;
         var pathIsDir = fs.statSync(selectorFullPath).isDirectory();
 
         if (pathIsDir) {
-            // Taking off the trailing "/" so that when we use it to replace
-            // full paths, the relative paths still start with /
-            // That's wack for single files, but we have a fix for that coming...
-            if (selectorFullPath.endsWith("/") || selectorFullPath.endsWith("\\")) {
-                selectorFullPath = selectorFullPath.substring(
-                    0,
-                    selectorFullPath.length - 1
-                );
-            }
-            theseFiles = getAllFilePaths(selectorFullPath);
+            // 1. Get all files in this and any subdirectory.
+            // TODO: This will throw on a bogus path (but we checked with existsSync)
+            // and return [] on an empty folder.
+            selectorMatchesFullPaths =
+                fileSystemService.getAllFilePaths(selectorFullPath);
 
-            // TODO: Do I need to do this?
-            theseFiles = theseFiles || [];
-
-            // When we minimatch, we want to do it relative to the parent
-            // path.
-            // Otherwise "*.js" will never match anything, since we
-            // have full paths in the getAllFilePaths results.
-            theseFiles = theseFiles.map((x) => x.replace(selectorFullPath, ""));
-
-            theseFiles = theseFiles || [];
-
-            console.log(`all files for ${nth}th ${type} selector before filtering: 
+            // 2. Run the file paths against include & exclude globs from config.
+            utils.debugLog(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
-${JSON.stringify(theseFiles, null, "  ")}
+${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
 
-            theseFiles = findAllIncludes(selector, theseFiles);
-            theseFiles = removeAllExcludes(selector, theseFiles);
-
-            // Now let's put the full paths back (we'll remove the original
-            // root directory before we write to an html file).
-            theseFiles = theseFiles.map((x) =>
-                isWindows
-                    ? `${selectorFullPath}${x.startsWith("\\") ? x : "\\" + x}`
-                    : `${selectorFullPath}${x.startsWith("/") ? x : "/" + x}`
+            selectorMatchesFullPaths = selectorUtils.findAllIncludes(
+                selector,
+                selectorMatchesFullPaths,
+                chutzpahJsonFileParent
+            );
+            selectorMatchesFullPaths = selectorUtils.removeAllExcludes(
+                selector,
+                selectorMatchesFullPaths,
+                chutzpahJsonFileParent
             );
 
-            console.log(`and after filtering:
-            ${JSON.stringify(theseFiles, null, "  ")}
-                        
+            utils.debugLog(`all files for ${nth}th ${type} selector after filtering:
+    ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
+
 `);
         } else {
-            // I'm not sure how to handle single files in the root.
-            // Seems they should start with `/` to match the logic.
-            // But I could see doing it either way.
-            // Problem is minimatch acts differently with each, though
-            // they're functionally equivalent.
-            //
-            // TODO: Windows solution
-            // Let's be offensive for now:
-            if (!selector.Path.startsWith("/")) {
-                throw `Paths must start with / ---- #${selector.Path}#`;
-            }
-
-            theseFiles = [jsonFileParent + selector.Path];
+            selectorMatchesFullPaths = [
+                nodePath.join(chutzpahJsonFileParent, selector.Path),
+            ];
         }
 
-        return theseFiles;
+        return selectorMatchesFullPaths;
     }
 
-    console.log(`${selectorFullPath} from json does not exist`);
+    console.warn(`${selectorFullPath} from json does not exist`);
     return [];
 }
 
-function filterNonexistentPaths(fullPaths, type) {
-    type = type || "References";
-
-    return fullPaths.filter((fullPath) => {
-        if (!fs.existsSync(fullPath)) {
-            console.warn(
-                `#### File listed in Chutzpah config's ${type} does not exist!
-${fullPath}`
-            );
-            return false;
-        }
-
-        return true;
-    });
-}
-
+// AggressiveStar means a value of "*.js" looks for "*.js" in EVERY folder,
+// recurisvely rather than simply for files that match ONLY at the root level folder.
+// Some glob evaluators seem to do this and some don't. (???)
+// See, eg, https://github.com/isaacs/minimatch/issues/172#issuecomment-1359582179
+// minimatch (lib we're using for glob selection) doesn't but Chutzpah's glob lib did,
+// so we need to translate. And by "translate", I mean add "**/[pattern with single star]"
+// to the selectors (Include or Exclude as appropriate) to match Chutzpah's glob expectations.
 function handleAggressiveStar(configInfo) {
     var ocdDryPropNames = ["References", "Tests"];
     var ocdDryArrayNames = ["Includes", "Excludes"];
@@ -333,45 +232,222 @@ function handleAggressiveStar(configInfo) {
             ? configInfo[refsOrTests]
             : [configInfo[refsOrTests]];
 
-        configInfo[refsOrTests].forEach((singleEntry) => {
-            cleanIncludes(singleEntry);
-            cleanExcludes(singleEntry);
+        configInfo[refsOrTests].forEach((singleRefOrTestEntry) => {
+            selectorUtils.normalizeIncludeVsIncludes(singleRefOrTestEntry);
+            selectorUtils.normalizeExcludeVsExcludes(singleRefOrTestEntry);
 
-            ocdDryArrayNames.forEach((pathArrayName) => {
-                // We don't require that there's an In/Excludes for a single file.
-                if (singleEntry[pathArrayName]) {
-                    singleEntry[pathArrayName] = Array.isArray(singleEntry[pathArrayName])
-                        ? singleEntry[pathArrayName]
-                        : [singleEntry[pathArrayName]];
+            ocdDryArrayNames.forEach((includesOrExcludes) => {
+                // There's no requirement that single files have In- and Ex-cludes so truthycheck 'em.
+                if (singleRefOrTestEntry[includesOrExcludes]) {
+                    singleRefOrTestEntry[includesOrExcludes] = Array.isArray(
+                        singleRefOrTestEntry[includesOrExcludes]
+                    )
+                        ? singleRefOrTestEntry[includesOrExcludes]
+                        : [singleRefOrTestEntry[includesOrExcludes]];
 
                     var toAdd = [];
-                    singleEntry[pathArrayName].forEach((singlePath) => {
+                    singleRefOrTestEntry[includesOrExcludes].forEach((singlePath) => {
+                        // Here's where we translate "*.js" to "**/*.js" to approximate
+                        // Chutzpah's glob selection logic.
                         if (singlePath.startsWith("*") && !singlePath.startsWith("**")) {
-                            // AggressiveStar means a value of "*.js" looks for "*.js" in EVERY folder,
-                            // recurisvely rather than simply at the root level folder.
-                            // Some glob evaluators seem to do this and some don't. (???)
-                            // TODO: Add github issue link.
                             var allFoldersSelector = "**/" + singlePath;
                             if (
-                                !singleEntry[pathArrayName].find(
+                                !singleRefOrTestEntry[includesOrExcludes].find(
                                     (x) => x === allFoldersSelector
                                 )
                             ) {
-                                console.log(
+                                utils.debugLog(
                                     `GOING AGGRESSIVE!!! ${refsOrTests} - ${singlePath}`
                                 );
+
+                                // Note that we're not deleting the old entry but adding the
+                                // superset. Cute, I guess.
                                 toAdd.push(allFoldersSelector);
                             }
                         }
                     });
 
-                    singleEntry[pathArrayName] = singleEntry[pathArrayName].concat(toAdd);
+                    singleRefOrTestEntry[includesOrExcludes] =
+                        singleRefOrTestEntry[includesOrExcludes].concat(toAdd);
                 }
             });
         });
     });
 }
 
+function starReplacer(match /*, p1, offset, original, group*/) {
+    // I know, I could've done this less bullheadedly. This works.
+    switch (match) {
+        case "*/":
+            return "**/";
+        case "/*":
+            return "/**";
+        default:
+            return "/**/";
+    }
+}
+
+var re = /^\*\/|\/\*\/|\/\*$/g;
+function coverageAggressiveStar(s) {
+    return s.replace(re, starReplacer);
+}
+
+// GET ALL REFERENCE FILES (files needed to run stuff)
+function getRefFiles(chutzpahConfigObj, jsonFileParent) {
+    var allRefFilePaths = [];
+    chutzpahConfigObj.References.forEach(function (singleReferenceEntry, i) {
+        var filesForSelector = handleChutzpahSelector(
+            singleReferenceEntry,
+            jsonFileParent,
+            "Reference",
+            i
+        );
+
+        allRefFilePaths = mergeAndDedupe(allRefFilePaths, filesForSelector);
+    });
+
+    // ensure they all exist
+    // Looks like even full Windows paths work here with forward slashes. Weird.
+    allRefFilePaths = fileSystemService.filterNonexistentPaths(
+        allRefFilePaths,
+        "References"
+    );
+
+    // allRefFilePaths = allRefFilePaths.map((x) =>
+    //     x.replace(jsonFileParent.replace(/\\/g, "/"), "")
+    // );
+
+    return allRefFilePaths;
+}
+
+function getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent) {
+    // GET ALL FILES THAT HAVE TESTS TO RUN
+    var specFiles = [];
+    if (!singleTestFile) {
+        chutzpahConfigObj.Tests.forEach(function (ref, i) {
+            var filesForSelector = handleChutzpahSelector(ref, jsonFileParent, "Test", i);
+
+            specFiles = mergeAndDedupe(specFiles, filesForSelector);
+        });
+    } else {
+        specFiles = [singleTestFile];
+    }
+
+    specFiles = fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
+    return specFiles;
+}
+
+function getCoverageFiles(chutzpahConfigObj, allRefFilePaths) {
+    var coverageFiles = [];
+
+    if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
+        chutzpahConfigObj.CodeCoverageIncludes.forEach((coverageIncludePattern) => {
+            // if (!isWindows) {
+            coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
+            // }
+
+            if (!chutzpahConfigObj.NoAggressiveStar) {
+                // TODO: This doesn't seem to be written for single file entries.
+                // ????: Why wouldn't logic for Ref/Spec In/Excludes work?
+                coverageIncludePattern = coverageAggressiveStar(coverageIncludePattern);
+            }
+
+            coverageFiles = coverageFiles.concat(
+                minimatch.match(allRefFilePaths, coverageIncludePattern)
+            );
+
+            utils.debugLog(coverageIncludePattern, coverageFiles);
+        });
+    }
+
+    // TODO: CodeCoverageExcludes
+    console.warn("TODO: CodeCoverageExcludes");
+
+    return coverageFiles;
+}
+
+// 1. Recurse folders, match, and get ref files
+// 2. Get spec files
+// 3. Get coverage files
+// 4. Return results as a single object.
+function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
+    if (!chutzpahConfigObj.NoAggressiveStar) {
+        handleAggressiveStar(chutzpahConfigObj);
+    }
+
+    var allRefFilePaths = getRefFiles(chutzpahConfigObj, jsonFileParent);
+    var specFiles = getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent);
+
+    if (!specFiles.length) {
+        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
+    }
+
+    // REMOVE ANY SPEC FILES FOUND IN REFERENCES
+    // Chutzpah doesn't seem to make a distinction between what should be referenced
+    // and what should be tested -- or, more specifically, you can ref tests in that tool
+    // without causing an issue (I think?).
+    // Let's remove any test files from our ref files so they're not duplicated.
+    // (I mean, I guess it'd work with them, but you get the point that tests shouldn't
+    //  be coverage tested.)
+    allRefFilePaths = allRefFilePaths.filter((path) => specFiles.indexOf(path) === -1);
+
+    var coverageFiles = getCoverageFiles(chutzpahConfigObj, allRefFilePaths);
+
+    return {
+        allRefFilePaths,
+        specFiles,
+        coverageFiles,
+    };
+}
+
+function findChutzpahJson(startPath) {
+    if (!fs.existsSync(startPath)) {
+        throw `Invalid start path: ${startPath}`;
+    }
+
+    var statsObj = fs.statSync(startPath);
+    // If it's a file, grab the parent dir.
+    var possibleDir = statsObj.isDirectory() ? startPath : nodePath.dirname(startPath);
+
+    var foundChutzpahJson = undefined;
+    while (!foundChutzpahJson) {
+        utils.debugLog("checking: " + possibleDir);
+        var tryHere = nodePath.join(possibleDir, "Chutzpah.json");
+        if (fs.existsSync(tryHere)) {
+            foundChutzpahJson = tryHere;
+        } else {
+            var newPossibleDir = nodePath.dirname(possibleDir);
+            if (newPossibleDir === possibleDir) {
+                throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
+            }
+            possibleDir = newPossibleDir;
+            // utils.debugLog("Next dir up: " + possibleDir);
+        }
+    }
+
+    return foundChutzpahJson;
+}
+
+// ===============================================================================================
+// 1. findChutzpahJson: Finds chutzpah config using original path (the function's only parameter)
+//      * can be a test file or a folder.
+//      * find closest Chutzpah.json (by name)
+//          file at that folder (or file's parent folder) or "lower"
+// 2. fileSystemService.getFileContents (Promise returned): Get json file's contents.
+// 3. parseChutzpahInfo: Send contents as POJSO and process into object with these properties:
+//      * allRefFilePaths,
+//      * specFiles,
+//      * coverageFiles,
+// 4. Return object with info from 3. plus some initialization info
+//      return {
+//          originalTestPath,
+//          configFilePath,
+//          jsonFileParent,
+//          allRefFilePaths: info.allRefFilePaths,
+//          specFiles: info.specFiles,
+//          coverageFiles: info.coverageFiles,
+//      };
+// ===============================================================================================
 function getConfigInfo(originalTestPath) {
     var configFilePath = findChutzpahJson(originalTestPath);
 
@@ -386,130 +462,64 @@ function getConfigInfo(originalTestPath) {
         );
     }
 
-    console.log("Reading Chutzpah config: " + configFilePath);
+    utils.debugLog("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
     var singleTestFile =
-        !originalTestPath.endsWith(slash) &&
-        originalTestPath.lastIndexOf(".") > originalTestPath.indexOf(slash) &&
-        !originalTestPath.toLowerCase().endsWith("chutzpah.json")
+        originalTestPath.toLowerCase().endsWith(".js") ||
+        originalTestPath.toLowerCase().endsWith(".ts")
             ? originalTestPath
             : false;
 
-    // If you execute from an "inner" directory, don't include test files
-    // outside of that path. (*DO* include all ref files, though.)
-    var limitingDir = singleTestFile
-        ? nodePath.dirname(originalTestPath)
-        : originalTestPath;
+    return fileSystemService.getFileContents(jsonFilePath).then(function (chutzpahJson) {
+        var chutzpahConfigObj = JSON.parse(chutzpahJson);
+        utils.debugLog("read chutzpah json", chutzpahConfigObj);
 
-    return getFileContents(jsonFilePath).then(function (chutzpahJso) {
-        var chutzpahConfigObj = JSON.parse(chutzpahJso);
-        console.log("read chutzpah json", chutzpahConfigObj);
+        var info = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
+        utils.debugLog(info);
 
-        var ret = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
         return {
             originalTestPath,
             configFilePath,
             jsonFileParent,
-            allRefFilePaths: ret.allRefFilePaths,
-            specFiles: ret.specFiles,
-            coverageFiles: ret.coverageFiles,
+            allRefFilePaths: info.allRefFilePaths,
+            specFiles: info.specFiles,
+            coverageFiles: info.coverageFiles,
         };
     });
 }
 
-function mergeAndDedupe(parentCollection, newFiles) {
-    // let's standardize on *NIX paths.
-    // TODO: I think there's a node function for this.
-    newFiles.forEach((x, i) => (newFiles[i] = x.replace(/\\/g, "/")));
-    var filesForSelectorDeduped = newFiles.filter(
-        (x) => parentCollection.indexOf(x) === -1
-    );
+if (require.main === module) {
+    // First two are always "Node" and the path to what was called.
+    // Trash those.
+    const myArgs = process.argv.slice(2);
+    utils.debugLog("myArgs: ", myArgs);
 
-    return parentCollection.concat(filesForSelectorDeduped);
-}
+    fileSystemService.getFileContents("C:\\temp\\chutzpahTestValues.json").then(
+        (testValueFileContents) => {
+            var testConfigPath = JSON.parse(testValueFileContents).singleChutzpah;
 
-function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
-    if (chutzpahConfigObj.AggressiveStar) {
-        handleAggressiveStar(chutzpahConfigObj);
-    }
-
-    var allRefFilePaths = [];
-
-    chutzpahConfigObj.References.forEach(function (singleReferenceEntry, i) {
-        var filesForSelector = handleChutzpahSelector(
-            singleReferenceEntry,
-            jsonFileParent,
-            "Reference",
-            i
-        );
-
-        allRefFilePaths = mergeAndDedupe(allRefFilePaths, filesForSelector);
-    });
-
-    // ensure they all exist
-    // Looks like even full Windows paths work here with foreward slashes. Weird.
-    allRefFilePaths = filterNonexistentPaths(allRefFilePaths, "References");
-    allRefFilePaths = allRefFilePaths.map((x) =>
-        x.replace(jsonFileParent.replace(/\\/g, "/"), "")
-    );
-
-    var specFiles = [];
-    if (!singleTestFile) {
-        chutzpahConfigObj.Tests.forEach(function (ref, i) {
-            var filesForSelector = handleChutzpahSelector(ref, jsonFileParent, "Test", i);
-
-            specFiles = mergeAndDedupe(specFiles, filesForSelector);
-        });
-    } else {
-        // var parentAtStart = `^${jsonFileParent}`;
-        // var reParentAtStart = new RegExp(parentAtStart, "i");
-        // var singleFileWithParentRemoved = singleTestFile.replace(reParentAtStart, "");
-        // specFiles = [singleFileWithParentRemoved];
-        specFiles = [singleTestFile];
-    }
-
-    specFiles = filterNonexistentPaths(specFiles, "Test (spec files)");
-    specFiles = specFiles.map((x) => x.replace(jsonFileParent.replace(/\\/g, "/"), ""));
-
-    if (!specFiles.length) {
-        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
-    }
-
-    // Chutzpah doesn't seem to make a distinction between what should be referenced
-    // and what should be tested -- or, more specifically, you can ref tests without
-    // causing an issue (I think?).
-    // Let's remove any test files from our ref files so they're not duplicated.
-    // (I mean, I guess it'd work with them, but you get the point.)
-    allRefFilePaths = allRefFilePaths.filter((path) => specFiles.indexOf(path) === -1);
-
-    var coverageFiles = [];
-
-    if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
-        chutzpahConfigObj.CodeCoverageIncludes.forEach((coverageIncludePattern) => {
-            if (!isWindows) {
-                coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
-            }
-
-            console.log(
-                coverageIncludePattern,
-                minimatch.match(allRefFilePaths, coverageIncludePattern)
+            fileSystemService.getFileContents(testConfigPath).then(
+                getConfigInfo(testConfigPath).then(
+                    (values) => {
+                        var valuesAsString = JSON.stringify(values, null, "  ");
+                        utils.debugLog(valuesAsString);
+                        fs.writeFileSync(
+                            "C:\\temp\\parsedChutzpahValues.json",
+                            valuesAsString
+                        );
+                    },
+                    (err) => console.error("2", err)
+                ),
+                (err) => console.error("1", err)
             );
-            coverageFiles = coverageFiles.concat(
-                minimatch.match(allRefFilePaths, coverageIncludePattern)
-            );
-        });
-    }
-
-    return {
-        allRefFilePaths,
-        specFiles,
-        coverageFiles,
-    };
+        },
+        (err) => console.error("0", err)
+    );
 }
 
 module.exports = {
     getConfigInfo,
-    findChutzpahJson, // okay, this is just here for testing. That's bad.
+    findChutzpahJson, // okay, this was made public only for testing. That's bad.
 };

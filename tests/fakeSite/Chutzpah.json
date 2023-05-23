@@ -1,4 +1,5 @@
 {
+    "AggresiveStar": true,
     "Framework": "jasmine",
     "FrameworkVersion": "3",
     "Engine": "JSDom",

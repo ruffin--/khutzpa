@@ -139,10 +139,11 @@ On the command line, khutzpa currently at least partially supports these options
 * `/coverage`
     * Can occur anywhere
     * This is super lazy. You can have any color of coverage you want, as long as it's...
-        * Run in Chrome (Chrome must be installed)
+        * The coverage run is performed in Chrome (Chrome must be installed)
         * Is output to html
         * Is opened in your default browser using a utility server
             * currently even the server's port is static. I think it is or was 3000.
+            * That means if you try to run khutzpa twice without closing the first instance it'll error out.
 
 
 
@@ -155,13 +156,23 @@ Links are to the Chutzpah project's help, which should carry over.
 * [References](https://github.com/mmanela/chutzpah/wiki/references-setting)
 * [Tests](https://github.com/mmanela/chutzpah/wiki/tests-setting)
 * CodeCoverageIncludes - "The collection code coverage file patterns to include in coverage. These are in glob format. If you specify none all files are included."
-* CodeCoverageExcludes - "The collection code coverage file patterns to exclude in coverage. These are in glob format. If you specify none no files are excluded."
+* <strike>CodeCoverageExcludes - "The collection code coverage file patterns to exclude in coverage. These are in glob format. If you specify none no files are excluded."</strike> <<< not actually supported yet
 
 For now, that's it. 
 
 This is an alpha, after all. That said, khutzpa likely won't support all of them when we're "done" either. _That_ said, it's amazing how much just those options buy you.
 
-Note that there's a sample `Chutzpah.json` file in the `test` folder.
+##### Non-standard options
+
+* `AggressiveStar` 
+    * I noticed in some legacy projects I'm working with that we use selectors like `*.js` and expect them to get every `*.js` file in any subdirectory. 
+        * [That's not how globs [usually] work](https://www.malikbrowne.com/blog/a-beginners-guide-glob-patterns), though I guess Chutzpah did?
+    * With `AggressiveStar` set to `true`, that's how it works here too.
+    * Also resolves `*` values in `CodeCoverageIncludes` to `**` for folders.
+        * `*/dir1/dir2/*` will be translated to `**/dir/dir2/**`.
+    * I reserve the right to make this the default behavior later.
+
+> Note that there's a sample `Chutzpah.json` file in the `test` folder.
 
 
 

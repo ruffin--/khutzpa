@@ -4,3 +4,5 @@
 
 package-lock.json
 coverage
+tests/testChutzpahReader.js
+log.txt
