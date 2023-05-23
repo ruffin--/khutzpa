@@ -201,7 +201,7 @@ if (require.main === module) {
     cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
         utils.debugLog("done");
 
-        if (Array.isArray(resultsIfAny) && resultsIfAny.every((x) => x !== undefined)) {
+        if (Array.isArray(resultsIfAny) && !resultsIfAny.every((x) => x === undefined)) {
             utils.debugLog("::RESULTS::");
             utils.debugLog(resultsIfAny);
             utils.debugLog("::eoRESULTS::");
