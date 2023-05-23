@@ -122,7 +122,8 @@ const createKarmaConfig = function (overrides) {
         // undefined
         // karma.constants.LOG_DEBUG
         // 'DEBUG'
-        logLevel: karma.constants.LOG_DEBUG,
+        logLevel: karma.constants.LOG_WARN,
+        // logLevel: karma.constants.LOG_DEBUG,
 
         // start these browsers
         // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher

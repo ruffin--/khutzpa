@@ -26,14 +26,6 @@ utils.debugLog("isWindows? " + isWindows);
 function hasRelativeOrFullPathMatch(fullPath, home, glob) {
     var relative = nodePath.relative(home, fullPath);
     var valueForDebugging = minimatch(relative, glob) || minimatch(fullPath, glob);
-
-    console.log(`Match?
-        ${home}
-        ${fullPath}
-        ${relative}
-        ${glob}
-        ${valueForDebugging}`);
-
     return valueForDebugging;
 }
 
@@ -207,7 +199,7 @@ ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
                 chutzpahJsonFileParent
             );
 
-            utils.debugLog(`and after filtering:
+            utils.debugLog(`all files for ${nth}th ${type} selector after filtering:
     ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
