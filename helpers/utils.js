@@ -3,6 +3,10 @@ const { isString } = require("./stringManipulation");
 
 const settingsCue = "x:";
 
+let areDebugging = false;
+let dontLogToConsole = false;
+let logAllToFile = false;
+
 function csvToLiteral(csv) {
     // we're not escaping commas for now.
     // csvs are fun, though. https://stackoverflow.com/a/23574271/1028230
@@ -50,11 +54,6 @@ function alwaysLog() {
     ]);
 }
 
-// hacky settings for logging
-const areDebugging = true;
-const dontLogToConsole = false;
-const logAllToFile = true;
-
 function debugLog() {
     var args = [].slice.call(arguments);
     // eslint-disable-next-line
@@ -84,7 +83,9 @@ function debugLog() {
                 args.forEach((arg) =>
                     fs.appendFileSync(
                         "./log.txt",
-                        (isString(arg) ? arg : JSON.stringify(arg, null, "  ")) + "\n"
+                        `${Date().toString()}:: ${
+                            isString(arg) ? arg : JSON.stringify(arg, null, "  ")
+                        }\n`
                     )
                 );
             }
@@ -118,4 +119,7 @@ module.exports = {
     alwaysLog,
     mcDebugger,
     isParseable,
+    areDebugging,
+    dontLogToConsole,
+    logAllToFile,
 };
