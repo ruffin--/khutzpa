@@ -315,7 +315,7 @@ function getRefFiles(chutzpahConfigObj, jsonFileParent) {
     });
 
     // ensure they all exist
-    // Looks like even full Windows paths work here with foreward slashes. Weird.
+    // Looks like even full Windows paths work here with forward slashes. Weird.
     allRefFilePaths = fileSystemService.filterNonexistentPaths(
         allRefFilePaths,
         "References"
