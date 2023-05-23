@@ -3,85 +3,21 @@
  * test suite when exexcuted.
  ************************************************/
 const karma = require("karma");
-const stringManipulation = require("./stringManipulationService");
+
+const karmaConfigTools = require("./karmaConfigTools");
+const stringManipulation = require("../helpers/stringManipulation");
+const utils = require("../helpers/utils");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
 
-function logit(x) {
-    // console.log(JSON.stringify(x, null, "  "));
-}
-
-const createKarmaConfig = function (overrides) {
-    var baseConfig = {
-        // base path that will be used to resolve all patterns (eg. files, exclude)
-        basePath: "./",
-
-        // frameworks to use
-        // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ["jasmine"],
-
-        // list of files / patterns to load in the browser
-        files: [{ pattern: "**/*.js" }],
-
-        // list of files / patterns to exclude
-        exclude: ["**/node_modules/**/"],
-
-        // preprocess matching files before serving them to the browser
-        // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
-        // preprocessors: {},
-        preprocessors: {
-            "**/!(*test).js": ["coverage"],
-            // './fakeCode/add2.js': ['coverage'],
-        },
-
-        // test results reporter to use
-        // possible values: 'dots', 'progress'
-        // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
-        reporters: ["coverage", "mocha"],
-        // reporters: ['progress', 'coverage'],
-
-        // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
-        coverageReporter: {
-            reporters: [
-                { type: "text-summary" },
-                { type: "html", dir: "../coverage/" },
-                { type: "text", dir: "coverage/", file: "coverage.txt" },
-            ],
-        },
-
-        // web server port
-        port: 9876,
-
-        // enable / disable colors in the output (reporters and logs)
-        colors: true,
-
-        // level of logging
-        // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
-        logLevel: karma.config.LOG_DEBUG,
-
-        // enable / disable watching file and executing tests whenever any file changes
-        autoWatch: true,
-
-        // start these browsers
-        // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher
-        browsers: ["Chrome"],
-
-        // Continuous Integration mode
-        // if true, Karma captures browsers, runs the tests and exits
-        singleRun: true,
-
-        // Concurrency level
-        // how many browser instances should be started simultaneously
-        concurrency: Infinity,
-    };
-
-    return Object.assign({}, baseConfig, overrides);
-};
-
 function startKarma(karmaRunId, overrides) {
-    var karmaConfig = createKarmaConfig(overrides);
-    // logit(karmaConfig);
+    overrides = Object.assign(
+        {},
+        karmaConfigTools.overridesForMochaTestingRun,
+        overrides
+    );
+    var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
 
     karmaConfig.files.forEach((x, i) => {
         if (stringManipulation.isString(x) && stringManipulation.startsWithSlash(x)) {
@@ -124,7 +60,7 @@ function startKarma(karmaRunId, overrides) {
                 ) {
                     // 0 is success/no test failure.
                     // Anything else is bad. Usually 1 afaict.
-                    console.log("Karma has exited with " + exitCode);
+                    utils.debugLog("Wrapped karma has exited with " + exitCode);
                     karmaRunResults[karmaRunId] = exitCode;
 
                     return exitCode;
@@ -134,12 +70,12 @@ function startKarma(karmaRunId, overrides) {
 
                 var serverPromise = server.start();
                 return serverPromise.then(function (x) {
-                    console.log("server promise", x);
+                    utils.debugLog("server promise", x);
                     return x;
                 });
             },
             (rejectReason) => {
-                console.log("Error", rejectReason);
+                utils.debugLog("Error", rejectReason);
                 throw rejectReason;
             }
         );
@@ -147,7 +83,7 @@ function startKarma(karmaRunId, overrides) {
     return karmaPromise;
 }
 
-function runFullTests(configInfo, karmaRunId) {
+function runWrappedKarma(configInfo, karmaRunId) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -177,7 +113,7 @@ function runFullTests(configInfo, karmaRunId) {
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
     };
-    logit("config overrides for karma:", overrides);
+    utils.debugLog("config overrides for karma:", overrides);
 
     return startKarma(karmaRunId, overrides);
 }
@@ -186,7 +122,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    logit("myArgs: ", myArgs);
+    utils.debugLog("myArgs: ", myArgs);
 
     var karmaRunId = "unique value";
     karmaRunIds.push(karmaRunId);
@@ -213,8 +149,8 @@ if (require.main === module) {
             ],
         };
 
-        runFullTests(configResult, karmaRunId).then(function (exitCode) {
-            console.log("done (Promises probably outstanding)", exitCode);
+        runWrappedKarma(configResult, karmaRunId).then(function (exitCode) {
+            utils.debugLog("done (Promises probably outstanding)", exitCode);
         });
     } else {
         var config = {
@@ -238,7 +174,7 @@ if (require.main === module) {
         };
 
         // startKarma(config).then(function (after) {
-        //     console.log("after", after);
+        //     utils.debugLog("after", after);
         // });
 
         startKarma(karmaRunId, config);
@@ -246,7 +182,7 @@ if (require.main === module) {
         // TODO: Turn into a Promise.
         var intervalId = setInterval(function () {
             if (karmaRunIds.every((x) => karmaRunResults[x] !== undefined)) {
-                console.log(karmaRunResults, "global exit codes");
+                utils.debugLog(karmaRunResults, "global exit codes");
                 clearInterval(intervalId);
             }
         }, 2000);
@@ -254,5 +190,5 @@ if (require.main === module) {
 }
 
 module.exports = {
-    runFullTests,
+    runWrappedKarma,
 };

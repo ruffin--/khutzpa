@@ -1,6 +1,7 @@
-var fs = require("fs");
-var path = require("path");
-var fileSystemService = require("./fileSystemService");
+const fs = require("fs");
+const path = require("path");
+const fileSystemService = require("./fileSystemService");
+const utils = require("../helpers/utils");
 
 function chutzpahWalk(dir) {
     if (!fs.statSync(dir).isDirectory()) {
@@ -33,14 +34,29 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    console.log("myArgs: ", myArgs);
+    utils.debugLog("myArgs: ", myArgs);
 
     fileSystemService
         .getFileContents("C:\\temp\\chutzpahTestValues.json")
         .then(function (jsonContents) {
-            var chutzpahTestValues = JSON.parse(jsonContents);
+            try {
+                var chutzpahTestValues = JSON.parse(jsonContents);
 
-            var results = chutzpahWalk(chutzpahTestValues.chutzpahWalkStart);
-            console.log(results);
+                if (!chutzpahTestValues.chutzpahWalkStart) {
+                    console.warn("Invalid chutzpahWalkStart path");
+                } else {
+                    utils.debugLog(
+                        "Starting at: " + chutzpahTestValues.chutzpahWalkStart
+                    );
+                    var results = chutzpahWalk(chutzpahTestValues.chutzpahWalkStart);
+                    utils.debugLog("x:asjson,tofile", results);
+                }
+            } catch (e) {
+                console.error(
+                    "Was unable to run chutzpahWalk's test/main logic",
+                    jsonContents,
+                    e
+                );
+            }
         });
 }
