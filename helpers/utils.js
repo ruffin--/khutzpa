@@ -4,7 +4,7 @@ const { isString } = require("./stringManipulation");
 const settingsCue = "x:";
 
 let areDebugging = false;
-let dontLogToConsole = false;
+let dontLogToConsole = true;
 let logAllToFile = false;
 
 function csvToLiteral(csv) {
