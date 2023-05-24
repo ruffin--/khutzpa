@@ -49,10 +49,12 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
         // Then remember which paths were doctored and restore them after.
         var withSlashes = [];
         var noSlashesForComparison = [];
-        if (!manip.startsWithSlash(includePattern)) {
-            withSlashes = fullPaths.filter((x) => manip.startsWithSlash(x));
-            noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
-        }
+
+        // ????: Is this necessary now after standardizing on full paths?
+        // if (!manip.startsWithSlash(includePattern)) {
+        //     withSlashes = fullPaths.filter((x) => manip.startsWithSlash(x));
+        //     noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
+        // }
 
         var matches = fullPaths.filter((singleFullPath) =>
             hasRelativeOrFullPathMatch(singleFullPath, home, includePattern)

@@ -16,19 +16,20 @@ function startKarma(overrides) {
 
     var serverHasStarted = false;
 
-    karmaConfig.files.forEach((x, i) => {
-        if (stringManipulation.startsWithSlash(x)) {
-            karmaConfig.files[i] = x.substring(1);
-        }
-    });
+    // ????: Is this slash removal necessary?
+    // karmaConfig.files.forEach((x, i) => {
+    //     if (stringManipulation.startsWithSlash(x)) {
+    //         karmaConfig.files[i] = x.substring(1);
+    //     }
+    // });
 
-    var processorKeys = Object.keys(karmaConfig.preprocessors);
-    processorKeys.forEach((key) => {
-        if (stringManipulation.startsWithSlash(key)) {
-            karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
-            delete karmaConfig.preprocessors[key];
-        }
-    });
+    // var processorKeys = Object.keys(karmaConfig.preprocessors);
+    // processorKeys.forEach((key) => {
+    //     if (stringManipulation.startsWithSlash(key)) {
+    //         karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
+    //         delete karmaConfig.preprocessors[key];
+    //     }
+    // });
     utils.debugLog(karmaConfig);
 
     return karma.config
