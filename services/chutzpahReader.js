@@ -15,7 +15,8 @@ utils.debugLog("isWindows? " + isWindows);
 // We have two competing issues here...
 // A. *.js style globs only match files in the root dir.
 // B. minimatch always fails to match ../s in paths.
-//      https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
+//      Treatise on glob "standards":
+//          https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
 //      (It looked like optimizationLevel:2 would change that, but it doesn't.)
 //      (Appears that's b/c you're using v5, not v7+)
 //      https://github.com/isaacs/minimatch/blob/main/changelog.md
@@ -39,6 +40,7 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
     // "Includes all tests that contain test1 in its path. This is in glob format."
     //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     // If that's accurate, that's not how globs work *in the minimatch package*.
+    // (See excellent treatise on glob "standards", above.)
     //
     // Recall that minimatch really wants you to use full paths.
     // See: `partial` option in minimatch, eg:
