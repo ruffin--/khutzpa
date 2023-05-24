@@ -20,25 +20,26 @@ function startKarma(karmaRunId, overrides) {
         );
         var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
 
-        karmaConfig.files.forEach((x, i) => {
-            if (stringManipulation.isString(x) && stringManipulation.startsWithSlash(x)) {
-                karmaConfig.files[i] = x.substring(1);
-            } else if (
-                x.pattern &&
-                stringManipulation.isString(x.pattern) &&
-                stringManipulation.startsWithSlash(x.pattern)
-            ) {
-                karmaConfig.files[i].pattern = x.pattern.substring(1);
-            }
-        });
+        // ????: Why am I removing leading slashes again?
+        // karmaConfig.files.forEach((x, i) => {
+        //     if (stringManipulation.isString(x) && stringManipulation.startsWithSlash(x)) {
+        //         karmaConfig.files[i] = x.substring(1);
+        //     } else if (
+        //         x.pattern &&
+        //         stringManipulation.isString(x.pattern) &&
+        //         stringManipulation.startsWithSlash(x.pattern)
+        //     ) {
+        //         karmaConfig.files[i].pattern = x.pattern.substring(1);
+        //     }
+        // });
 
-        var processorKeys = Object.keys(karmaConfig.preprocessors);
-        processorKeys.forEach((key) => {
-            if (stringManipulation.startsWithSlash(key)) {
-                karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
-                delete karmaConfig.preprocessors[key];
-            }
-        });
+        // var processorKeys = Object.keys(karmaConfig.preprocessors);
+        // processorKeys.forEach((key) => {
+        //     if (stringManipulation.startsWithSlash(key)) {
+        //         karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
+        //         delete karmaConfig.preprocessors[key];
+        //     }
+        // });
         // logit(karmaConfig);
 
         karma.config
