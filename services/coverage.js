@@ -6,7 +6,6 @@ const opener = require("opener");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const expressServer = require("./expressServer");
-const stringManipulation = require("../helpers/stringManipulation");
 const utils = require("../helpers/utils");
 
 function startKarma(overrides) {
@@ -15,22 +14,6 @@ function startKarma(overrides) {
     utils.debugLog(karmaConfig);
 
     var serverHasStarted = false;
-
-    // ????: Is this slash removal necessary?
-    // karmaConfig.files.forEach((x, i) => {
-    //     if (stringManipulation.startsWithSlash(x)) {
-    //         karmaConfig.files[i] = x.substring(1);
-    //     }
-    // });
-
-    // var processorKeys = Object.keys(karmaConfig.preprocessors);
-    // processorKeys.forEach((key) => {
-    //     if (stringManipulation.startsWithSlash(key)) {
-    //         karmaConfig.preprocessors[key.substring(1)] = ["coverage"];
-    //         delete karmaConfig.preprocessors[key];
-    //     }
-    // });
-    utils.debugLog(karmaConfig);
 
     return karma.config
         .parseConfig(
