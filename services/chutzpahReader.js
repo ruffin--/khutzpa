@@ -5,7 +5,6 @@ const minimatch = require("minimatch");
 const nodePath = require("node:path");
 const Os = require("os");
 const fileSystemService = require("./fileSystemService");
-const manip = require("../helpers/stringManipulation");
 const utils = require("../helpers/utils");
 
 // const { config } = require("process");
@@ -16,7 +15,8 @@ utils.debugLog("isWindows? " + isWindows);
 // We have two competing issues here...
 // A. *.js style globs only match files in the root dir.
 // B. minimatch always fails to match ../s in paths.
-//      https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
+//      Treatise on glob "standards":
+//          https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
 //      (It looked like optimizationLevel:2 would change that, but it doesn't.)
 //      (Appears that's b/c you're using v5, not v7+)
 //      https://github.com/isaacs/minimatch/blob/main/changelog.md
@@ -39,40 +39,18 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
     // { "Includes": ["*test1*"] },
     // "Includes all tests that contain test1 in its path. This is in glob format."
     //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    // If that's accurate, that's not how globs in minimatch work.
+    // If that's accurate, that's not how globs work *in the minimatch package*.
+    // (See excellent treatise on glob "standards", above.)
     //
-    // Below: Trying to solve the minimatch starting slash issue.
+    // Recall that minimatch really wants you to use full paths.
+    // See: `partial` option in minimatch, eg:
+    // https://github.com/isaacs/minimatch#partial
+    // "This is useful in applications where you're walking through a folder structure, and don't yet have the full path..."
+    // This means that if we stop using full paths, you'll need to revisit starting slash usage.
     selector[selectorName].forEach(function (includePattern) {
-        // if the pattern doesn't have a leading slash but our files do,
-        // that's an issue, since that seems to mean "root of *relative*
-        // path to Chutzpah instead of root of file system to minimatch.
-        // Then remember which paths were doctored and restore them after.
-        var withSlashes = [];
-        var noSlashesForComparison = [];
-        if (!manip.startsWithSlash(includePattern)) {
-            withSlashes = fullPaths.filter((x) => manip.startsWithSlash(x));
-            noSlashesForComparison = manip.removeLeadingSlashes(withSlashes);
-        }
-
         var matches = fullPaths.filter((singleFullPath) =>
             hasRelativeOrFullPathMatch(singleFullPath, home, includePattern)
         );
-
-        // Ok, if we stripped a leading slash, put it back. Inefficient, but computers
-        // love doing this stuff. Right?
-        matches = matches.map((x) => {
-            var index = noSlashesForComparison.indexOf(x);
-            // Yes, there are side effects. Yes, that's smelly, but also gets us around
-            // the "what if I have `spam.txt` AND `/spam.txt` issue?
-            if (index > -1) {
-                var ret = withSlashes[index];
-                noSlashesForComparison.splice(index, 1);
-                withSlashes.splice(index, 1);
-                return ret;
-            }
-
-            return x;
-        });
 
         // I feel like this dedupe is a painfully inefficient operation.
         allMatches = allMatches.concat(

@@ -171,49 +171,56 @@ var actionTypes = {
 };
 
 if (require.main === module) {
-    // First two arguments for a node process are always "Node"
-    // and the path to this app. Trash those.
-    const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    try {
+        // First two arguments for a node process are always "Node"
+        // and the path to this app. Trash those.
+        const myArgs = process.argv.slice(2);
+        utils.debugLog("myArgs: ", myArgs);
 
-    var command =
-        myArgs.indexOf("/openInBrowser") > -1
-            ? actionTypes.OPEN_IN_BROWSER
-            : myArgs.indexOf("/coverage") > -1
-            ? actionTypes.WITH_COVERAGE
-            : myArgs.indexOf("/findAllSuites") > -1
-            ? actionTypes.FIND_ALL_CHUTZPAHS
-            : myArgs.indexOf("/runAllSuites") > -1
-            ? actionTypes.RUN_ALL_CHUTZPAHS
-            : myArgs.indexOf("/walkAllRunOne") > -1
-            ? actionTypes.WALK_ALL_RUN_ONE
-            : myArgs.indexOf("/runOne") > -1
-            ? actionTypes.RUN_ONE_IN_KARMA
-            : actionTypes.PRINT_USAGE;
+        var command =
+            myArgs.indexOf("/openInBrowser") > -1
+                ? actionTypes.OPEN_IN_BROWSER
+                : myArgs.indexOf("/coverage") > -1
+                ? actionTypes.WITH_COVERAGE
+                : myArgs.indexOf("/findAllSuites") > -1
+                ? actionTypes.FIND_ALL_CHUTZPAHS
+                : myArgs.indexOf("/runAllSuites") > -1
+                ? actionTypes.RUN_ALL_CHUTZPAHS
+                : myArgs.indexOf("/walkAllRunOne") > -1
+                ? actionTypes.WALK_ALL_RUN_ONE
+                : myArgs.indexOf("/runOne") > -1
+                ? actionTypes.RUN_ONE_IN_KARMA
+                : actionTypes.PRINT_USAGE;
 
-    var filePath = myArgs.shift();
-    utils.debugLog(command);
-    if (command !== actionTypes.PRINT_USAGE && !fs.existsSync(filePath)) {
-        throw `Invalid starting file ${filePath}`;
-    }
-
-    var expressPort = 3000;
-    cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
-        utils.debugLog("done");
-
-        if (Array.isArray(resultsIfAny) && !resultsIfAny.every((x) => x === undefined)) {
-            utils.debugLog("::RESULTS::");
-            utils.debugLog(resultsIfAny);
-            utils.debugLog("::eoRESULTS::");
-
-            const firstError = resultsIfAny.find((x) => x && x !== 0);
-
-            // On Windows, to see the returned code (https://stackoverflow.com/a/334893/1028230):
-            // cmd.exe: echo %ERRORLEVEL%
-            // pwsh.exe: echo $LastExitCode
-            process.exit(firstError || 0);
+        var filePath = myArgs.shift();
+        utils.debugLog(command);
+        if (command !== actionTypes.PRINT_USAGE && !fs.existsSync(filePath)) {
+            throw `Invalid starting file ${filePath}`;
         }
-    });
+
+        var expressPort = 3000;
+        cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
+            utils.debugLog("done");
+
+            if (
+                Array.isArray(resultsIfAny) &&
+                !resultsIfAny.every((x) => x === undefined)
+            ) {
+                utils.debugLog("::RESULTS::");
+                utils.debugLog(resultsIfAny);
+                utils.debugLog("::eoRESULTS::");
+
+                const firstError = resultsIfAny.find((x) => x && x !== 0);
+
+                // On Windows, to see the returned code (https://stackoverflow.com/a/334893/1028230):
+                // cmd.exe: echo %ERRORLEVEL%
+                // pwsh.exe: echo $LastExitCode
+                process.exit(firstError || 0);
+            }
+        });
+    } catch (e) {
+        console.error("An error occurred:", e);
+    }
 }
 
 module.exports = cmdCallHandler;
