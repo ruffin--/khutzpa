@@ -15,6 +15,29 @@ const opener = require("opener");
 const chutzpahWalk = require("./services/chutzpahWalk");
 const { findTheRoot } = require("./helpers/findTheRoot");
 
+function printUsage() {
+    console.warn(`
+=================================================
+khutzpa usage:
+=================================================
+
+khutzpa /path/to/root/directory /{command}
+
+    A path *must* be included.
+
+    Currently supported commands include:
+
+    /openInBrowser
+    /coverage
+    /runAllSuites
+    /runOne
+    /findAllSuites
+    /walkAllRunOne
+    /usage
+
+`);
+}
+
 function cmdCallHandler(startingFilePath, expressPort, actionType) {
     var fnAction = () => {
         console.error("no action given: " + actionType);
@@ -119,22 +142,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
             break;
 
         default:
-            fnAction = () =>
-                utils.debugLog(`=================================================
-khutzpa usage:
-=================================================
-
-khutzpa /path/to/root/directory /{command}
-
-    Currently supported commands include:
-
-    /openInBrowser
-    /coverage
-    /runAllSuites
-    /runOne
-    /findAllSuites
-    /walkAllRunOne
-    /usage`);
+            fnAction = printUsage;
     }
 
     utils.debugLog("fnAction is set");
@@ -177,47 +185,48 @@ if (require.main === module) {
         const myArgs = process.argv.slice(2);
         utils.debugLog("myArgs: ", myArgs);
 
-        var command =
-            myArgs.indexOf("/openInBrowser") > -1
-                ? actionTypes.OPEN_IN_BROWSER
-                : myArgs.indexOf("/coverage") > -1
-                ? actionTypes.WITH_COVERAGE
-                : myArgs.indexOf("/findAllSuites") > -1
-                ? actionTypes.FIND_ALL_CHUTZPAHS
-                : myArgs.indexOf("/runAllSuites") > -1
-                ? actionTypes.RUN_ALL_CHUTZPAHS
-                : myArgs.indexOf("/walkAllRunOne") > -1
-                ? actionTypes.WALK_ALL_RUN_ONE
-                : myArgs.indexOf("/runOne") > -1
-                ? actionTypes.RUN_ONE_IN_KARMA
-                : actionTypes.PRINT_USAGE;
-
         var filePath = myArgs.shift();
-        utils.debugLog(command);
-        if (command !== actionTypes.PRINT_USAGE && !fs.existsSync(filePath)) {
-            throw `Invalid starting file ${filePath}`;
+        if (!filePath || !fs.existsSync(filePath)) {
+            printUsage();
+        } else {
+            var command =
+                myArgs.indexOf("/openInBrowser") > -1
+                    ? actionTypes.OPEN_IN_BROWSER
+                    : myArgs.indexOf("/coverage") > -1
+                    ? actionTypes.WITH_COVERAGE
+                    : myArgs.indexOf("/findAllSuites") > -1
+                    ? actionTypes.FIND_ALL_CHUTZPAHS
+                    : myArgs.indexOf("/runAllSuites") > -1
+                    ? actionTypes.RUN_ALL_CHUTZPAHS
+                    : myArgs.indexOf("/walkAllRunOne") > -1
+                    ? actionTypes.WALK_ALL_RUN_ONE
+                    : myArgs.indexOf("/runOne") > -1
+                    ? actionTypes.RUN_ONE_IN_KARMA
+                    : actionTypes.PRINT_USAGE;
+
+            utils.debugLog(command);
+
+            var expressPort = 3000;
+            cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
+                utils.debugLog("done");
+
+                if (
+                    Array.isArray(resultsIfAny) &&
+                    !resultsIfAny.every((x) => x === undefined)
+                ) {
+                    utils.debugLog("::RESULTS::");
+                    utils.debugLog(resultsIfAny);
+                    utils.debugLog("::eoRESULTS::");
+
+                    const firstError = resultsIfAny.find((x) => x && x !== 0);
+
+                    // On Windows, to see the returned code (https://stackoverflow.com/a/334893/1028230):
+                    // cmd.exe: echo %ERRORLEVEL%
+                    // pwsh.exe: echo $LastExitCode
+                    process.exit(firstError || 0);
+                }
+            });
         }
-
-        var expressPort = 3000;
-        cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
-            utils.debugLog("done");
-
-            if (
-                Array.isArray(resultsIfAny) &&
-                !resultsIfAny.every((x) => x === undefined)
-            ) {
-                utils.debugLog("::RESULTS::");
-                utils.debugLog(resultsIfAny);
-                utils.debugLog("::eoRESULTS::");
-
-                const firstError = resultsIfAny.find((x) => x && x !== 0);
-
-                // On Windows, to see the returned code (https://stackoverflow.com/a/334893/1028230):
-                // cmd.exe: echo %ERRORLEVEL%
-                // pwsh.exe: echo $LastExitCode
-                process.exit(firstError || 0);
-            }
-        });
     } catch (e) {
         console.error("An error occurred:", e);
     }
