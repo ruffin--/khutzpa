@@ -119,7 +119,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
             if (chutzpahConfigLocs.length) {
                 var jsonLocsWithIndex = chutzpahConfigLocs.map((x, i) => `${i} -- ${x}`);
-                utils.debugLog(jsonLocsWithIndex.join("\n"));
+                console.log(jsonLocsWithIndex.join("\n"));
                 const whichOne = prompt("Which do you want to run?");
                 var whichIndex = parseInt(whichOne, 10);
 
@@ -219,9 +219,9 @@ if (require.main === module) {
                     Array.isArray(resultsIfAny) &&
                     !resultsIfAny.every((x) => x === undefined)
                 ) {
-                    utils.debugLog("::RESULTS::");
-                    utils.debugLog(resultsIfAny);
-                    utils.debugLog("::eoRESULTS::");
+                    console.log("::RESULTS::");
+                    console.log(resultsIfAny);
+                    console.log("::eoRESULTS::");
 
                     const firstError = resultsIfAny.find((x) => x && x !== 0);
 
