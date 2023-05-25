@@ -185,6 +185,11 @@ if (require.main === module) {
         const myArgs = process.argv.slice(2);
         utils.debugLog("myArgs: ", myArgs);
 
+        if (myArgs.indexOf("/version") > -1) {
+            const packageInfo = require("./package.json");
+            return console.log(packageInfo.version);
+        }
+
         var filePath = myArgs.shift();
         if (!filePath || !fs.existsSync(filePath)) {
             printUsage();
