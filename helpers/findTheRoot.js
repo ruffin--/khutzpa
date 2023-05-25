@@ -12,14 +12,12 @@ function findTheRoot(files) {
     files.forEach((file) => {
         var fileParent = nodePath.dirname(file);
         var dirDiff = nodePath.relative(possibleRoot, fileParent);
-        console.log(dirDiff);
 
         if (dirDiff.startsWith("..")) {
             var backupCount = (dirDiff.match(re) || []).length;
             for (var i = 0; i < backupCount; i++) {
                 possibleRoot = nodePath.dirname(possibleRoot);
             }
-            console.log("NEW ROOT: " + possibleRoot);
         }
     });
 
