@@ -107,11 +107,11 @@ If you have more than one Chutzpah.json file in a folder hierarchy, you can use 
 
 
 
-### Usage with [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner)
+## Usage with [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner)
 
 **WARNING:** There's no threading right now. Things might freeze for a while, especially for larger test suites.
 
-#### VSCode, Chutzpah Runner extension, and **macOS**
+### macOS
 
 This takes a little work. There are two ways to link the extension with khutzpa: 
 
@@ -143,9 +143,7 @@ Now things should work! Right-click a file or folder in VS Code's Explorer and r
 
 Note that khutzpa [purposefully] opens a new Terminal window ***that must be closed or the app quit*** before you can run it again. In the future, I may reuse the express server or have khutzpa check to see if the port it wants to use is already in use. Probably the former.
 
----
-
-##### Warnings (macOS)
+#### Warnings (macOS)
 
 One known limitation: Right now, the runner is sending a filename for the **coverage** output that khutzpa is ignoring. You can see this under [Chutzpah's command-line options](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options).
 
@@ -163,13 +161,36 @@ The weirdly named html file name & opened by the Runner will be empty. Again, no
 
 ---
 
-#### VSCode, Chutzpah Runner extension, and **Windows**
 
-[will add after I test it out & add it]
+
+
+
+### Windows
+
+Very similar to macOS with a few tweaks. Here are the steps.
+
+1. First you need to install the [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) extension in VS Code if you haven't.
+2. If you haven't installed khutzpa globally, do that with `npm install khutzpa -g`
+3. Open VS Code. Hit `Cmd-,` (so literally "Command and comma keys at the same time") to open your preferences. 
+4. Hit `Command-F` and search for `Chutzpah`.
+5. Two choices:
+    1. Enter a path to the khutzpa npm installation and change the path to match your user name
+        * `C:\Users\[yourLogin]\AppData\Roaming\npm\khutzpa.cmd`
+    2. Create a .bat file that calls `khutzpa`.
+        * contents: `khutzpa %*`
+        * Then enter the path to the file *inclusive of filename* for Chutzpahrunner: Exe Path in Chutzpah Runner's settings.
+6. Save settings and close the tab.
+
+Now things should work! Right-click a file or folder in VS Code's Explorer and run some tests or a coverage report.
+
+**NOTE:** When you run the "in Chrome" option to open tests in a browser, the Chutzpah Runner is going to open a node terminal. ***You have to close this window yourself to start a new "open in browser" run.***
 
 ---
 
-#### VSCode, Chutzpah Runner extension, and **Linux**
+
+
+
+### Linux
 
 [It might be a while before I set this up. Let me know if you do it! Should be reasonably straightforward.]
 
