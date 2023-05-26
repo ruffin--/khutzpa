@@ -76,11 +76,7 @@ const overridesForMochaTestingRun = {
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
     coverageReporter: {
-        reporters: [
-            { type: "text-summary" },
-            { type: "html", dir: "../coverage/" },
-            { type: "text", dir: "coverage/", file: "coverage.txt" },
-        ],
+        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
     },
 };
 
