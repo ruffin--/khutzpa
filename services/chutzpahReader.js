@@ -96,25 +96,27 @@ function _aggressiveStarEngine(selectorArray, parentPropertyForReporting) {
         selectorArray = Array.isArray(selectorArray) ? selectorArray : [selectorArray];
 
         selectorArray.forEach((singlePath) => {
-            // Here's where we translate "*.js" to "**/*.js" to approximate
-            // Chutzpah's glob selection logic.
-            // NOTE: This seems like naive parsing logic.
-            if (singlePath.startsWith("*") && !singlePath.startsWith("**")) {
-                var allFoldersSelector = "**/" + singlePath;
-                if (!selectorArray.find((x) => x === allFoldersSelector)) {
-                    utils.debugLog(
-                        `GOING AGGRESSIVE!!! ${parentPropertyForReporting} - ${singlePath}`
-                    );
+            var out = singlePath;
+            if (out === "*") {
+                out = "**/*.*";
+            } else {
+                // first get rid of any single stars representing directories.
+                // /a/b/*/c/*.js to /a/b/**/c/*.js
+                // */b/c/*.js to **/b/c/*.js
+                out = out.replace(/(^|\/|\\)\*(\/|\\)/g, "$1**$2");
+                // /a/b/c/* to /a/b/c/** <<< not sure that's valid.
+                // Let's try a/b/c/**/*.*
+                out = out.replace(/(\/|\\)\*$/g, "$1**$1*.*");
 
-                    // Note that we're not deleting the old entry but adding the
-                    // superset. Cute, I guess.
-                    toAdd.push(allFoldersSelector);
+                if (out.startsWith("*") && !out.startsWith("**")) {
+                    out = "**/" + out;
                 }
             }
 
-            // also need to check for folder selectors that end with /*
-            if (singlePath.endsWith("/*") || singlePath.endsWith("\\*")) {
-                toAdd.push(singlePath + "*");
+            if (!selectorArray.find((x) => x === out)) {
+                // Note that we're not deleting the old entry but adding the
+                // superset. Cute, I guess.
+                toAdd.push(out);
             }
         });
     }
