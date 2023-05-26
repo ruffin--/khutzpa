@@ -191,12 +191,47 @@ ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
     return [];
 }
 
+function _aggressiveStarEngine(selectorArray, parentPropertyForReporting) {
+    var toAdd = [];
+
+    // There's no requirement that single files have In- and Ex-cludes so truthycheck 'em.
+    if (selectorArray) {
+        selectorArray = Array.isArray(selectorArray) ? selectorArray : [selectorArray];
+
+        selectorArray.forEach((singlePath) => {
+            // Here's where we translate "*.js" to "**/*.js" to approximate
+            // Chutzpah's glob selection logic.
+            // NOTE: This seems like naive parsing logic.
+            if (singlePath.startsWith("*") && !singlePath.startsWith("**")) {
+                var allFoldersSelector = "**/" + singlePath;
+                if (!selectorArray.find((x) => x === allFoldersSelector)) {
+                    utils.debugLog(
+                        `GOING AGGRESSIVE!!! ${parentPropertyForReporting} - ${singlePath}`
+                    );
+
+                    // Note that we're not deleting the old entry but adding the
+                    // superset. Cute, I guess.
+                    toAdd.push(allFoldersSelector);
+                }
+            }
+
+            // also need to check for folder selectors that end with /*
+            if (singlePath.endsWith("/*") || singlePath.endsWith("\\*")) {
+                toAdd.push(singlePath + "*");
+            }
+        });
+    }
+
+    return toAdd;
+}
+
 // AggressiveStar means a value of "*.js" looks for "*.js" in EVERY folder,
 // recurisvely rather than simply for files that match ONLY at the root level folder.
 // Some glob evaluators seem to do this and some don't. (???)
 // See, eg, https://github.com/isaacs/minimatch/issues/172#issuecomment-1359582179
 // minimatch (lib we're using for glob selection) doesn't but Chutzpah's glob lib did,
-// so we need to translate. And by "translate", I mean add "**/[pattern with single star]"
+// so we need to translate. And by "translate", I mean add
+// "**/[pattern with single star]"
 // to the selectors (Include or Exclude as appropriate) to match Chutzpah's glob expectations.
 function handleAggressiveStar(configInfo) {
     var ocdDryPropNames = ["References", "Tests"];
@@ -211,43 +246,20 @@ function handleAggressiveStar(configInfo) {
             selectorUtils.normalizeIncludeVsIncludes(singleRefOrTestEntry);
             selectorUtils.normalizeExcludeVsExcludes(singleRefOrTestEntry);
 
-            ocdDryArrayNames.forEach((includesOrExcludes) => {
-                // There's no requirement that single files have In- and Ex-cludes so truthycheck 'em.
-                if (singleRefOrTestEntry[includesOrExcludes]) {
-                    singleRefOrTestEntry[includesOrExcludes] = Array.isArray(
-                        singleRefOrTestEntry[includesOrExcludes]
+            ocdDryArrayNames.forEach(function (includesOrExcludes) {
+                singleRefOrTestEntry[includesOrExcludes] = singleRefOrTestEntry[
+                    includesOrExcludes
+                ].concat(
+                    _aggressiveStarEngine(
+                        singleRefOrTestEntry[includesOrExcludes],
+                        refsOrTests
                     )
-                        ? singleRefOrTestEntry[includesOrExcludes]
-                        : [singleRefOrTestEntry[includesOrExcludes]];
-
-                    var toAdd = [];
-                    singleRefOrTestEntry[includesOrExcludes].forEach((singlePath) => {
-                        // Here's where we translate "*.js" to "**/*.js" to approximate
-                        // Chutzpah's glob selection logic.
-                        if (singlePath.startsWith("*") && !singlePath.startsWith("**")) {
-                            var allFoldersSelector = "**/" + singlePath;
-                            if (
-                                !singleRefOrTestEntry[includesOrExcludes].find(
-                                    (x) => x === allFoldersSelector
-                                )
-                            ) {
-                                utils.debugLog(
-                                    `GOING AGGRESSIVE!!! ${refsOrTests} - ${singlePath}`
-                                );
-
-                                // Note that we're not deleting the old entry but adding the
-                                // superset. Cute, I guess.
-                                toAdd.push(allFoldersSelector);
-                            }
-                        }
-                    });
-
-                    singleRefOrTestEntry[includesOrExcludes] =
-                        singleRefOrTestEntry[includesOrExcludes].concat(toAdd);
-                }
+                );
             });
         });
     });
+
+    // now do the same for coverage includes and excludes.
 }
 
 function starReplacer(match /*, p1, offset, original, group*/) {
