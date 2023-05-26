@@ -454,6 +454,8 @@ function getConfigInfo(originalTestPath) {
             allRefFilePaths: info.allRefFilePaths,
             specFiles: info.specFiles,
             coverageFiles: info.coverageFiles,
+            codeCoverageSuccessPercentage:
+                chutzpahConfigObj.CodeCoverageSuccessPercentage,
         };
     });
 }

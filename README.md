@@ -232,6 +232,9 @@ Links I the list, below, are to the Chutzpah project's help, which should carry 
     * [Tests](https://github.com/mmanela/chutzpah/wiki/tests-setting)
     * [CodeCoverageIncludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to include in coverage. These are in glob format. If you specify none all files are included."
     * <strike>[CodeCoverageExcludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to exclude in coverage. These are in glob format. If you specify none no files are excluded."</strike> <<< not actually supported yet
+    * [CodeCoverageSuccessPercentage](https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File)
+        * Same as setting every [karma-coverage check value](https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check) in the global section to the given integer.
+        * khutzpa will not return a `0` if this fails.
 * Non-standard options
     * `AggressiveStar` 
         * I noticed in some legacy projects I'm working with that we use selectors like `*.js` and expect them to get every `*.js` file in any subdirectory. 

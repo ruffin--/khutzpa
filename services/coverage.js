@@ -100,7 +100,7 @@ last modified: ${statsObj.mtimeMs},
                                     opener(coverageFilePath);
                                 }
 
-                                resolve(0);
+                                resolve(exitCode);
                             } else {
                                 reject(new Error("No coverage directory found!"));
                             }
@@ -145,6 +145,26 @@ function runKarmaCoverage(configInfo, outFile) {
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
     };
+
+    var codeCoverageSuccessPercentage = parseInt(
+        configInfo.codeCoverageSuccessPercentage,
+        10
+    );
+
+    if (codeCoverageSuccessPercentage) {
+        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
+        overrides.coverageReporter = {
+            check: {
+                emitWarning: false,
+                global: {
+                    statements: codeCoverageSuccessPercentage,
+                    branches: codeCoverageSuccessPercentage,
+                    functions: codeCoverageSuccessPercentage,
+                    lines: codeCoverageSuccessPercentage,
+                },
+            },
+        };
+    }
 
     utils.debugLog("config overrides for karma:", overrides);
 
