@@ -46,12 +46,26 @@ function isParseable(jsonString) {
 
 // yes, we lose the settings hack here.
 function alwaysLog() {
-    debugLog([
-        {
-            alwaysLog: true,
-        },
-        ...arguments,
-    ]);
+    debugLog(`${settingsCue}alwaysLog`, ...arguments);
+}
+
+function logWithLevel() {
+    var argsAsArray = [].slice.call(arguments);
+    var level = parseInt(argsAsArray.shift(), 10);
+
+    if (!level) {
+        throw new Error("must include a log level");
+    }
+
+    switch (level) {
+        case 1:
+            alwaysLog(...argsAsArray);
+            break;
+
+        case 2:
+        default:
+            debugLog(...argsAsArray);
+    }
 }
 
 function debugLog() {
@@ -68,6 +82,9 @@ function debugLog() {
     // the equiv of what's left of arguments...
     if (isString(args[0]) || settings.tofile) {
         try {
+            // why in heavens name is the first arg for settings
+            // have to be a json string and not an object literal?
+            // what in the world was your plan here? sheesh. ;)
             var wasParseable = isParseable(args[0]);
             settings = args[0].startsWith(settingsCue)
                 ? csvToLiteral(args[0].substring(settingsCue.length))
@@ -75,7 +92,8 @@ function debugLog() {
                 ? Object.assign(settings, wasParseable)
                 : settings;
 
-            if (wasParseable) {
+            // Now throw away the settings so we don't log it.
+            if (wasParseable || args[0].startsWith(settingsCue)) {
                 args.shift();
             }
 
@@ -115,6 +133,7 @@ function mcDebugger() {
 }
 
 module.exports = {
+    logWithLevel,
     debugLog,
     alwaysLog,
     mcDebugger,
