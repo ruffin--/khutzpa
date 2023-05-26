@@ -7,7 +7,31 @@ const opener = require("opener");
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
 
-function startKarma(overrides) {
+// https://stackoverflow.com/a/52338335/1028230
+function copyFolderSync(from, to) {
+    if (!fs.existsSync(to)) {
+        fs.mkdirSync(to);
+    }
+
+    fs.readdirSync(from).forEach((element) => {
+        if (fs.lstatSync(nodePath.join(from, element)).isFile()) {
+            fs.copyFileSync(nodePath.join(from, element), nodePath.join(to, element));
+        } else {
+            copyFolderSync(nodePath.join(from, element), nodePath.join(to, element));
+        }
+    });
+}
+
+function copyCoverageFiles(coverageDir, newIndexLoc) {
+    var newCoverageDir = nodePath.dirname(newIndexLoc);
+
+    copyFolderSync(coverageDir, newCoverageDir);
+
+    var oldIndexLoc = nodePath.join(coverageDir, "index.html");
+    fs.copyFileSync(oldIndexLoc, newIndexLoc);
+}
+
+function startKarma(overrides, outFile) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
     var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
     utils.debugLog(karmaConfig);
@@ -35,7 +59,6 @@ function startKarma(overrides) {
                         utils.debugLog(arguments);
 
                         var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
-
                         fs.readdir(coverageDir, function (err, list) {
                             var latestCoverageDir = "";
                             var latestTime = 0;
@@ -64,11 +87,18 @@ last modified: ${statsObj.mtimeMs},
 
                             if (latestCoverageDir) {
                                 utils.debugLog(latestCoverageDir);
-                                var coverageFilePath = nodePath.join(
-                                    latestCoverageDir,
-                                    "index.html"
-                                );
-                                opener(coverageFilePath);
+
+                                if (outFile) {
+                                    copyCoverageFiles(latestCoverageDir, outFile);
+                                    // We're going to let you open the file yourself if you used coveragehtml
+                                    // mostly because that's what Chutzpah Runner does.
+                                } else {
+                                    var coverageFilePath = nodePath.join(
+                                        latestCoverageDir,
+                                        "index.html"
+                                    );
+                                    opener(coverageFilePath);
+                                }
 
                                 resolve(0);
                             } else {
@@ -87,7 +117,7 @@ last modified: ${statsObj.mtimeMs},
     });
 }
 
-function runKarmaCoverage(configInfo) {
+function runKarmaCoverage(configInfo, outFile) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -118,7 +148,7 @@ function runKarmaCoverage(configInfo) {
 
     utils.debugLog("config overrides for karma:", overrides);
 
-    return startKarma(overrides);
+    return startKarma(overrides, outFile);
 }
 
 if (require.main === module) {
