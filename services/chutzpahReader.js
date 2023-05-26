@@ -3,14 +3,11 @@ const fs = require("fs");
 const minimatch = require("minimatch");
 // NOTE: node:path requires node v16+
 const nodePath = require("node:path");
-const Os = require("os");
 const fileSystemService = require("./fileSystemService");
 const utils = require("../helpers/utils");
 
-// const { config } = require("process");
-
-const isWindows = Os.platform() === "win32";
-utils.debugLog("isWindows? " + isWindows);
+// const Os = require("os");
+// const isWindows = Os.platform() === "win32";
 
 // We have two competing issues here...
 // A. *.js style globs only match files in the root dir.
@@ -320,9 +317,7 @@ function getCoverageFiles(chutzpahConfigObj, allRefFilePaths) {
 
     if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
         chutzpahConfigObj.CodeCoverageIncludes.forEach((coverageIncludePattern) => {
-            // if (!isWindows) {
             coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
-            // }
 
             if (!chutzpahConfigObj.NoAggressiveStar) {
                 // TODO: This doesn't seem to be written for single file entries.

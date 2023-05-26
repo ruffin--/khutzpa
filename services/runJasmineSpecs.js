@@ -6,6 +6,7 @@ const utils = require("../helpers/utils");
 
 // https://jasmine.github.io/pages/getting_started.html
 const scriptTemplate = `<script src="1"></script>\n`;
+const stylesheetTemplate = `<link rel="stylesheet" src="1">\n`;
 const specRunnerTemplate = `<!DOCTYPE html>
 <html>
     <head>
@@ -76,7 +77,11 @@ Note: There is currently no way to override this check.
 
 TODO: Allow overriding this check.`);
         } else {
-            forRunner += scriptTemplate.replace("1", nodePath.relative(root, filePath));
+            // This is kinda hacky. If there are more extensions we're worried about, refactor
+            // a bit.
+            forRunner += (
+                filePath.endsWith(".css") ? stylesheetTemplate : scriptTemplate
+            ).replace("1", nodePath.relative(root, filePath));
         }
     }
 
