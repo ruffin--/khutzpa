@@ -37,9 +37,19 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
     // https://github.com/isaacs/minimatch#partial
     // "This is useful in applications where you're walking through a folder structure, and don't yet have the full path..."
     // This means that if we stop using full paths, you'll need to revisit starting slash usage.
-    selector[selectorName].forEach(function (includePattern) {
+    //
+    // Also note/recall that minimatch doesn't want backslashes in selectors.
+    // https://github.com/isaacs/minimatch#windows
+    // > Though windows uses either / or \ as its path separator, only / characters are used by
+    // > this glob implementation. You must use forward-slashes only in glob expressions.
+    // > Back-slashes in patterns will always be interpreted as escape characters, not path separators.
+    // > ...
+    // > So just always use / in patterns.
+    selector[selectorName].forEach(function (globPattern) {
+        var backslashCleanedPattern = globPattern.replace(/\\/g, "/");
+
         var matches = fullPaths.filter((singleFullPath) =>
-            hasRelativeOrFullPathMatch(singleFullPath, home, includePattern)
+            hasRelativeOrFullPathMatch(singleFullPath, home, backslashCleanedPattern)
         );
 
         // I feel like this dedupe is a painfully inefficient operation.
