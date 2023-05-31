@@ -38,7 +38,6 @@ function getFileContents(filePath) {
                 : contents;
 
         // remove inline comments so that it's json, not jsonc.
-        // return contents.replace(/\/\/.*[\r\n]+/g, ""); <<< dumb. http:// gets smacked.
         return strman.stripInlineComments(contents);
     });
 }

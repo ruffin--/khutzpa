@@ -1,19 +1,28 @@
 /* eslint-disable quotes */
 const fs = require("fs");
-const minimatch = require("minimatch");
 // NOTE: node:path requires node v16+
 const nodePath = require("node:path");
 const fileSystemService = require("./fileSystemService");
 const utils = require("../helpers/utils");
 const selectorUtils = require("../helpers/selectorUtilities");
 
-// const Os = require("os");
-// const isWindows = Os.platform() === "win32";
+// TODO: This seems like it should be unnecessary, but also makes values
+// easier to grok when debugging. I can't tell if it's too hacky or legit.
+// Better than the old home-rolled windows checks, I guess.
+function standardizePathSeparatorInPlace(paths) {
+    // I don't know why, but this ninja reassignment feels smelly.
+    // You should probably also check for legit escapes. This is like
+    // minimatch's windowsPathNoEscape -- tres hacky.
+    // https://github.com/isaacs/minimatch#windowspathsnoescape
+    paths.forEach((x, i) => (paths[i] = x.replace(/\\/g, "/")));
+}
 
-function mergeAndDedupe(parentCollection, newFiles) {
+function mergeDedupeAndStandardizePathSeparator(parentCollection, newFiles) {
     // let's standardize on *NIX paths.
     // TODO: I think there's a node function for this.
-    newFiles.forEach((x, i) => (newFiles[i] = x.replace(/\\/g, "/")));
+    // Oh good heavens: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#fully-qualified-vs-relative-paths
+    standardizePathSeparatorInPlace(newFiles);
+
     var filesForSelectorDeduped = newFiles.filter(
         (x) => parentCollection.indexOf(x) === -1
     );
@@ -159,23 +168,12 @@ function handleAggressiveStar(configInfo) {
     });
 
     // now do the same for coverage includes and excludes.
-}
-
-function starReplacer(match /*, p1, offset, original, group*/) {
-    // I know, I could've done this less bullheadedly. This works.
-    switch (match) {
-        case "*/":
-            return "**/";
-        case "/*":
-            return "/**";
-        default:
-            return "/**/";
-    }
-}
-
-var re = /^\*\/|\/\*\/|\/\*$/g;
-function coverageAggressiveStar(s) {
-    return s.replace(re, starReplacer);
+    configInfo.CodeCoverageIncludes = configInfo.CodeCoverageIncludes.concat(
+        _aggressiveStarEngine(configInfo.CodeCoverageIncludes, "coverageIncludes")
+    );
+    configInfo.CodeCoverageIgnores = configInfo.CodeCoverageIgnores.concat(
+        _aggressiveStarEngine(configInfo.CodeCoverageIgnores, "coverageIgnores")
+    );
 }
 
 // GET ALL REFERENCE FILES (files needed to run stuff)
@@ -189,7 +187,10 @@ function getRefFiles(chutzpahConfigObj, jsonFileParent) {
             i
         );
 
-        allRefFilePaths = mergeAndDedupe(allRefFilePaths, filesForSelector);
+        allRefFilePaths = mergeDedupeAndStandardizePathSeparator(
+            allRefFilePaths,
+            filesForSelector
+        );
     });
 
     // ensure they all exist
@@ -199,10 +200,6 @@ function getRefFiles(chutzpahConfigObj, jsonFileParent) {
         "References"
     );
 
-    // allRefFilePaths = allRefFilePaths.map((x) =>
-    //     x.replace(jsonFileParent.replace(/\\/g, "/"), "")
-    // );
-
     return allRefFilePaths;
 }
 
@@ -210,10 +207,18 @@ function getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent) {
     // GET ALL FILES THAT HAVE TESTS TO RUN
     var specFiles = [];
     if (!singleTestFile) {
-        chutzpahConfigObj.Tests.forEach(function (ref, i) {
-            var filesForSelector = handleChutzpahSelector(ref, jsonFileParent, "Test", i);
+        chutzpahConfigObj.Tests.forEach(function (singleReferenceEntry, i) {
+            var filesForSelector = handleChutzpahSelector(
+                singleReferenceEntry,
+                jsonFileParent,
+                "Test",
+                i
+            );
 
-            specFiles = mergeAndDedupe(specFiles, filesForSelector);
+            specFiles = mergeDedupeAndStandardizePathSeparator(
+                specFiles,
+                filesForSelector
+            );
         });
     } else {
         specFiles = [singleTestFile];
@@ -223,31 +228,28 @@ function getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent) {
     return specFiles;
 }
 
-function getCoverageFiles(chutzpahConfigObj, allRefFilePaths) {
-    var coverageFiles = [];
+function getCoverageFiles(chutzpahConfigObj, allRefFilePaths, jsonFileParent) {
+    // the easiest way to reuse our current selector logic is to take
+    // CodeCoverageIncludes & CodeCoverageExcludes and make a selector
+    // out of them.
+    var fakeSelector = {
+        Path: jsonFileParent,
+        Includes: chutzpahConfigObj.CodeCoverageIncludes,
+        Excludes: chutzpahConfigObj.CodeCoverageIgnores,
+    };
 
-    if (Array.isArray(chutzpahConfigObj.CodeCoverageIncludes)) {
-        chutzpahConfigObj.CodeCoverageIncludes.forEach((coverageIncludePattern) => {
-            coverageIncludePattern = coverageIncludePattern.replace(/\\/g, "/");
+    // I think we're really only interested in ref files, though, so we'll
+    // want to filter these.
+    var unfilteredMatches = handleChutzpahSelector(
+        fakeSelector,
+        jsonFileParent,
+        "Coverage",
+        0
+    );
 
-            if (!chutzpahConfigObj.NoAggressiveStar) {
-                // TODO: This doesn't seem to be written for single file entries.
-                // ????: Why wouldn't logic for Ref/Spec In/Excludes work?
-                coverageIncludePattern = coverageAggressiveStar(coverageIncludePattern);
-            }
+    standardizePathSeparatorInPlace(unfilteredMatches);
 
-            coverageFiles = coverageFiles.concat(
-                minimatch.match(allRefFilePaths, coverageIncludePattern)
-            );
-
-            utils.debugLog(coverageIncludePattern, coverageFiles);
-        });
-    }
-
-    // TODO: CodeCoverageExcludes
-    console.warn("TODO: CodeCoverageExcludes");
-
-    return coverageFiles;
+    return unfilteredMatches.filter((x) => allRefFilePaths.indexOf(x) > -1);
 }
 
 // 1. Recurse folders, match, and get ref files
@@ -275,7 +277,11 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     //  be coverage tested.)
     allRefFilePaths = allRefFilePaths.filter((path) => specFiles.indexOf(path) === -1);
 
-    var coverageFiles = getCoverageFiles(chutzpahConfigObj, allRefFilePaths);
+    var coverageFiles = getCoverageFiles(
+        chutzpahConfigObj,
+        allRefFilePaths,
+        jsonFileParent
+    );
 
     return {
         allRefFilePaths,
