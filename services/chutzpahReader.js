@@ -168,10 +168,10 @@ function handleAggressiveStar(configInfo) {
     });
 
     // now do the same for coverage includes and excludes.
-    configInfo.CodeCoverageIncludes = configInfo.CodeCoverageIncludes.concat(
+    configInfo.CodeCoverageIncludes = (configInfo.CodeCoverageIncludes || []).concat(
         _aggressiveStarEngine(configInfo.CodeCoverageIncludes, "coverageIncludes")
     );
-    configInfo.CodeCoverageIgnores = configInfo.CodeCoverageIgnores.concat(
+    configInfo.CodeCoverageIgnores = (configInfo.CodeCoverageIgnores || []).concat(
         _aggressiveStarEngine(configInfo.CodeCoverageIgnores, "coverageIgnores")
     );
 }
@@ -347,7 +347,7 @@ function getConfigInfo(originalTestPath) {
 
     configFilePath = nodePath.resolve(configFilePath);
 
-    utils.debugLog("Reading Chutzpah config: " + configFilePath);
+    console.log("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
