@@ -168,11 +168,14 @@ function handleAggressiveStar(configInfo) {
     });
 
     // now do the same for coverage includes and excludes.
-    configInfo.CodeCoverageIncludes = configInfo.CodeCoverageIncludes.concat(
+    configInfo.CodeCoverageIncludes = (configInfo.CodeCoverageIncludes || []).concat(
         _aggressiveStarEngine(configInfo.CodeCoverageIncludes, "coverageIncludes")
     );
-    configInfo.CodeCoverageIgnores = configInfo.CodeCoverageIgnores.concat(
+    configInfo.CodeCoverageIgnores = (configInfo.CodeCoverageIgnores || []).concat(
         _aggressiveStarEngine(configInfo.CodeCoverageIgnores, "coverageIgnores")
+    );
+    configInfo.CodeCoverageExcludes = (configInfo.CodeCoverageExcludes || []).concat(
+        _aggressiveStarEngine(configInfo.CodeCoverageExcludes, "coverageExcludes")
     );
 }
 
@@ -232,10 +235,20 @@ function getCoverageFiles(chutzpahConfigObj, allRefFilePaths, jsonFileParent) {
     // the easiest way to reuse our current selector logic is to take
     // CodeCoverageIncludes & CodeCoverageExcludes and make a selector
     // out of them.
+
+    // This is a very naive implementation for CodeCoverageIgnores vs.
+    // CodeCoverageExcludes. For now, it simply ensures we do *something* with both
+    // excludes and ignores for code coverage for some level of backwards
+    // compatibility.  In this implementation, CodeCoverageIgnores and
+    // CodeCoverageExcludes are treated the same.
+    // That is, downstream we currently ONLY LOOK AT IGNORES.
+    // https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File
     var fakeSelector = {
         Path: jsonFileParent,
         Includes: chutzpahConfigObj.CodeCoverageIncludes,
-        Excludes: chutzpahConfigObj.CodeCoverageIgnores,
+        Excludes: chutzpahConfigObj.CodeCoverageIgnores.concat(
+            chutzpahConfigObj.CodeCoverageExcludes
+        ),
     };
 
     // I think we're really only interested in ref files, though, so we'll
@@ -347,7 +360,7 @@ function getConfigInfo(originalTestPath) {
 
     configFilePath = nodePath.resolve(configFilePath);
 
-    utils.debugLog("Reading Chutzpah config: " + configFilePath);
+    console.log("Reading Chutzpah config: " + configFilePath);
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
