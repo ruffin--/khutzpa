@@ -4,15 +4,19 @@ const utils = require("./utils");
 
 // We have two competing issues here...
 // A. *.js style globs only match files in the root dir.
-// B. minimatch always fails to match ../s in paths.
+// B. minimatch won't match ../ equivalents in "collapsed" paths.
+// > . and .. are maintained in the pattern, meaning that they must also appear in the same position in
+// > the test path string. Eg, a pattern like a/*/../c will match the string a/b/../c but not the string a/c.
 //      Treatise on glob "standards":
 //          https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
 //      (It looked like optimizationLevel:2 would change that, but it doesn't.)
+//      https://github.com/isaacs/minimatch#optimizationlevel
 //      (Appears that's b/c you're using v5, not v7+)
-//      https://github.com/isaacs/minimatch/blob/main/changelog.md
-// That means B. wants full paths, but A doesn't want a full path appended.
-// That conflict makes it tough to use paths as single strings.
-// Full path doesn't work A & B. Hacks are hard to match back up.
+//      https://github.com/isaacs/minimatch/blob/main/changelog.md#71
+// That means B. is easily to handle with full paths appended, but appending can mean
+// A. no longer matches. That conflict makes it tough to use just relative or just full paths
+// and hacks are hard to match back up.
+// So let's cheat and check both.
 function hasRelativeOrFullPathMatch(fullPath, home, glob) {
     var relative = nodePath.relative(home, fullPath);
     var valueForDebugging = minimatch(relative, glob) || minimatch(fullPath, glob);
