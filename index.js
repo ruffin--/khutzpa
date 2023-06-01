@@ -213,9 +213,9 @@ if (require.main === module) {
                     ? actionTypes.RUN_ALL_CHUTZPAHS
                     : myArgs.indexOf("/walkAllRunOne") > -1
                     ? actionTypes.WALK_ALL_RUN_ONE
-                    : myArgs.indexOf("/runOne") > -1
-                    ? actionTypes.RUN_ONE_IN_KARMA
-                    : actionTypes.PRINT_USAGE;
+                    : myArgs.indexOf("/version") > -1
+                    ? actionTypes.PRINT_USAGE
+                    : actionTypes.RUN_ONE_IN_KARMA;
 
             utils.debugLog(command);
 
