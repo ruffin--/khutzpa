@@ -7,7 +7,7 @@ khutzpa provides:
 1. A [Mocha reporter](https://github.com/litixsoft/karma-mocha-reporter) for the command line, 
 2. A Jasmine stand-alone runner for in-browser test reporting, and 
 3. Coverage reports made with <a href="https://github.com/karma-runner/karma-coverage">Istabul via karma and <strike>Jasmine</strike> chai</a> (?)
-    * ([Maybe?](https://github.com/karma-runner/karma-coverage/blob/06fb9ad858cd1dbe67cf432272771c1b8b59c7f3/package.json#L43) Not sure how chia & sinon are running jasmine syntax tests.)
+    * ([Maybe?](https://github.com/karma-runner/karma-coverage/blob/06fb9ad858cd1dbe67cf432272771c1b8b59c7f3/package.json#L43) Not sure how chai & sinon are running jasmine syntax tests.)
 
 khutzpa is designed to be run from the command line and/or using the [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner). <a href="#future">Future plans</a> include a Visual Studio Classic extension set.
 
