@@ -174,6 +174,9 @@ function handleAggressiveStar(configInfo) {
     configInfo.CodeCoverageIgnores = (configInfo.CodeCoverageIgnores || []).concat(
         _aggressiveStarEngine(configInfo.CodeCoverageIgnores, "coverageIgnores")
     );
+    configInfo.CodeCoverageExcludes = (configInfo.CodeCoverageExcludes || []).concat(
+        _aggressiveStarEngine(configInfo.CodeCoverageExcludes, "coverageExcludes")
+    );
 }
 
 // GET ALL REFERENCE FILES (files needed to run stuff)
@@ -232,10 +235,20 @@ function getCoverageFiles(chutzpahConfigObj, allRefFilePaths, jsonFileParent) {
     // the easiest way to reuse our current selector logic is to take
     // CodeCoverageIncludes & CodeCoverageExcludes and make a selector
     // out of them.
+
+    // This is a very naive implementation for CodeCoverageIgnores vs.
+    // CodeCoverageExcludes. For now, it simply ensures we do *something* with both
+    // excludes and ignores for code coverage for some level of backwards
+    // compatibility.  In this implementation, CodeCoverageIgnores and
+    // CodeCoverageExcludes are treated the same.
+    // That is, downstream we currently ONLY LOOK AT IGNORES.
+    // https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File
     var fakeSelector = {
         Path: jsonFileParent,
         Includes: chutzpahConfigObj.CodeCoverageIncludes,
-        Excludes: chutzpahConfigObj.CodeCoverageIgnores,
+        Excludes: chutzpahConfigObj.CodeCoverageIgnores.concat(
+            chutzpahConfigObj.CodeCoverageExcludes
+        ),
     };
 
     // I think we're really only interested in ref files, though, so we'll
