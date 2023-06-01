@@ -107,11 +107,11 @@ If you have more than one Chutzpah.json file in a folder hierarchy, you can use 
 
 
 
-### Usage with [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner)
+## Usage with [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner)
 
 **WARNING:** There's no threading right now. Things might freeze for a while, especially for larger test suites.
 
-#### VSCode, Chutzpah Runner extension, and **macOS**
+### [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) with macOS
 
 This takes a little work. There are two ways to link the extension with khutzpa: 
 
@@ -143,9 +143,7 @@ Now things should work! Right-click a file or folder in VS Code's Explorer and r
 
 Note that khutzpa [purposefully] opens a new Terminal window ***that must be closed or the app quit*** before you can run it again. In the future, I may reuse the express server or have khutzpa check to see if the port it wants to use is already in use. Probably the former.
 
----
-
-##### Warnings (macOS)
+#### Warnings (macOS)
 
 One known limitation: Right now, the runner is sending a filename for the **coverage** output that khutzpa is ignoring. You can see this under [Chutzpah's command-line options](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options).
 
@@ -163,13 +161,40 @@ The weirdly named html file name & opened by the Runner will be empty. Again, no
 
 ---
 
-#### VSCode, Chutzpah Runner extension, and **Windows**
 
-[will add after I test it out & add it]
+
+
+
+### [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) with Windows
+
+Very similar to macOS with a few tweaks. Here are the steps.
+
+1. First you need to install the [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) extension in VS Code if you haven't.
+2. If you haven't installed khutzpa globally, do that with `npm install khutzpa -g`
+3. Open VS Code. Hit `Cmd-,` (so literally "Command and comma keys at the same time") to open your preferences. 
+4. Hit `Command-F` and search for `Chutzpah`.
+5. We need to set up a command in the `Chutzpahrunner: Exe Path` section of in Chutzpah Runner's settings (see [picture](./docs/macOsExePath.png) in macOS section, but enter the value discussed here).
+    * We have two choices:
+        1. Enter the path to the khutzpa npm installation and change the path to match your user name
+            * `C:\Users\[yourLogin]\AppData\Roaming\npm\khutzpa.cmd`
+        2. Create a .bat file that calls `khutzpa`.
+            * contents of .bat file: `khutzpa %*`
+            * Then enter the path to the file *inclusive of filename* in `Chutzpahrunner: Exe Path`.
+            * For instance, if I save that file in `C:\temp\runKhutzpa.bat`, that's what should be in `Chutzpahrunner: Exe Path`
+6. Save settings and close the tab.
+
+Now things should work! Right-click a file or folder in VS Code's Explorer and run some tests or a coverage report.
+
+If things don't work, please [open an issue](https://github.com/ruffin--/khutzpa/issues).
+
+**NOTE:** When you run the "in Chrome" option to open tests in a browser, the Chutzpah Runner is going to open a node terminal. ***You have to close this window yourself to start a new "open in browser" run.***
 
 ---
 
-#### VSCode, Chutzpah Runner extension, and **Linux**
+
+
+
+### [Chutzpah Runner](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner) with Linux
 
 [It might be a while before I set this up. Let me know if you do it! Should be reasonably straightforward.]
 
@@ -202,23 +227,51 @@ That is, **WARNING:** For now, we're, um, taking an "any option you want, [as lo
 
 Links I the list, below, are to the Chutzpah project's help, which should carry over and behave the same here. [Open an issue](https://github.com/ruffin--/khutzpa/issues) if you find that they don't!
 
-* [References](https://github.com/mmanela/chutzpah/wiki/references-setting)
-* [Tests](https://github.com/mmanela/chutzpah/wiki/tests-setting)
-* [CodeCoverageIncludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to include in coverage. These are in glob format. If you specify none all files are included."
-* <strike>[CodeCoverageExcludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to exclude in coverage. These are in glob format. If you specify none no files are excluded."</strike> <<< not actually supported yet
+* Standard options
+    * [References](https://github.com/mmanela/chutzpah/wiki/references-setting)
+    * [Tests](https://github.com/mmanela/chutzpah/wiki/tests-setting)
+    * [CodeCoverageIncludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to include in coverage. These are in glob format. If you specify none all files are included."
+    * <strike>[CodeCoverageExcludes](https://github.com/mmanela/chutzpah/wiki/Code-Coverage-in-Chutzpah#configuration-code-coverage) - "The collection code coverage file patterns to exclude in coverage. These are in glob format. If you specify none no files are excluded."</strike> <<< not actually supported yet
+    * [CodeCoverageSuccessPercentage](https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File)
+        * Same as setting every [karma-coverage check value](https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check) in the global section to the given integer.
+        * khutzpa will not return a `0` if this fails.
+* Non-standard options
+    * `AggressiveStar` 
+        * I noticed in some legacy projects I'm working with that we use selectors like `*.js` and expect them to get every `*.js` file in any subdirectory. 
+        * If `AggressiveStar` isn't *explicitly set to `false`*, that's how it works here now too.
+            * [That's not how globs [usually] work](https://www.malikbrowne.com/blog/a-beginners-guide-glob-patterns), though I guess whatever Chutzpah used for globs did?
+        * Also resolves `*` values in `CodeCoverageIncludes` to `**` for folders.
+            * `*/dir1/dir2/*` will be translated to `**/dir/dir2/**`.
+
 
 For now, that's it. 
 
 This is an alpha, after all. That said, khutzpa likely won't support all of them when we're "done" either. _That_ said, it's amazing how much just those options buy you.
 
-##### Non-standard options
+#### Currently supported command-line options
 
-* `AggressiveStar` 
-    * I noticed in some legacy projects I'm working with that we use selectors like `*.js` and expect them to get every `*.js` file in any subdirectory. 
-    * If `AggressiveStar` isn't *explicitly set to `false`*, that's how it works here now too.
-        * [That's not how globs [usually] work](https://www.malikbrowne.com/blog/a-beginners-guide-glob-patterns), though I guess whatever Chutzpah used for globs did?
-    * Also resolves `*` values in `CodeCoverageIncludes` to `**` for folders.
-        * `*/dir1/dir2/*` will be translated to `**/dir/dir2/**`.
+* Legacy Chutzpah options
+    * `/openInBrowser`
+        * see above
+        * Currently also creates a coverage report, but opens up the Jasmine standalone test page.
+    * `/coverage`
+        * see above
+        * Right now, the coverage report should be placed in a `coverage` directory at the same root as your active Chutzpah.json file.
+        * Opens the coverage report as a static html file.
+    * `/coveragehtml {/some/file/name.html}`
+        * Must be used with `/coverage`, natch.
+        * _Minimally_ supported.
+        * Still creates a coverage report at the same root as your Chutzpah.json file.
+        * Then copies the index.html file into the name given here.
+        * Then copies all the supporting html to the same parent folder as the specified file.
+        * Basically the minimum to make the Chutzpah runner work.
+* Nonstandard options
+    * The "walk down" commands described above.
+        * `/findAllSuites`
+        * `/walkAllRunOne`
+        * `/runAllSuites`
+    * `/version` -- outputs the version, no less.
+    * `/runOne` -- Will run files 
 
 **NOTE:** There's a sample `Chutzpah.json` file in the `test` folder.
 

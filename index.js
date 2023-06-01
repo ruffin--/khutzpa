@@ -38,7 +38,7 @@ khutzpa /path/to/root/directory /{command}
 `);
 }
 
-function cmdCallHandler(startingFilePath, expressPort, actionType) {
+function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
     var fnAction = () => {
         console.error("no action given: " + actionType);
     };
@@ -87,8 +87,16 @@ function cmdCallHandler(startingFilePath, expressPort, actionType) {
 
         case actionTypes.WITH_COVERAGE:
             utils.debugLog("coverage");
+
+            var outFile;
+            var indexOfPath = args.indexOf("/coveragehtml");
+
+            if (indexOfPath !== -1) {
+                outFile = args[indexOfPath + 1];
+            }
+
             fnAction = function (configInfo) {
-                return coverageRunner.runKarmaCoverage(configInfo);
+                return coverageRunner.runKarmaCoverage(configInfo, outFile);
             };
             break;
 
@@ -212,7 +220,9 @@ if (require.main === module) {
             utils.debugLog(command);
 
             var expressPort = 3000;
-            cmdCallHandler(filePath, expressPort, command).then(function (resultsIfAny) {
+            cmdCallHandler(filePath, expressPort, command, myArgs).then(function (
+                resultsIfAny
+            ) {
                 utils.debugLog("done");
 
                 if (

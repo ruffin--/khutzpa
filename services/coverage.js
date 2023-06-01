@@ -5,109 +5,119 @@ const nodePath = require("node:path");
 const opener = require("opener");
 
 const karmaConfigTools = require("./karmaConfigTools");
-const expressServer = require("./expressServer");
 const utils = require("../helpers/utils");
 
-function startKarma(overrides) {
+// https://stackoverflow.com/a/52338335/1028230
+function copyFolderSync(from, to) {
+    if (!fs.existsSync(to)) {
+        fs.mkdirSync(to);
+    }
+
+    fs.readdirSync(from).forEach((element) => {
+        if (fs.lstatSync(nodePath.join(from, element)).isFile()) {
+            fs.copyFileSync(nodePath.join(from, element), nodePath.join(to, element));
+        } else {
+            copyFolderSync(nodePath.join(from, element), nodePath.join(to, element));
+        }
+    });
+}
+
+function copyCoverageFiles(coverageDir, newIndexLoc) {
+    var newCoverageDir = nodePath.dirname(newIndexLoc);
+
+    copyFolderSync(coverageDir, newCoverageDir);
+
+    var oldIndexLoc = nodePath.join(coverageDir, "index.html");
+    fs.copyFileSync(oldIndexLoc, newIndexLoc);
+}
+
+function startKarma(overrides, outFile) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
     var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
     utils.debugLog(karmaConfig);
 
-    var serverHasStarted = false;
+    return new Promise(function (resolve, reject) {
+        karma.config
+            .parseConfig(
+                null,
+                karmaConfig,
 
-    return karma.config
-        .parseConfig(
-            null,
-            karmaConfig,
+                // In most cases, parseOptions.throwErrors = true should also be set.
+                // This disables process exiting and allows errors to result in rejected promises.
+                // http://karma-runner.github.io/6.3/dev/public-api.html
+                { promiseConfig: true, throwErrors: true }
+            )
+            .then(
+                (parsedKarmaConfig) => {
+                    // fwiw
+                    // http://karma-runner.github.io/6.4/dev/public-api.html
+                    // I'm not sure why it names the callback function.
+                    const server = new Server(parsedKarmaConfig, function doneCallback(
+                        exitCode
+                    ) {
+                        utils.debugLog("Karma has exited with " + exitCode);
+                        utils.debugLog(arguments);
 
-            // In most cases, parseOptions.throwErrors = true should also be set.
-            // This disables process exiting and allows errors to result in rejected promises.
-            // http://karma-runner.github.io/6.3/dev/public-api.html
-            { promiseConfig: true, throwErrors: true }
-        )
-        .then(
-            (parsedKarmaConfig) => {
-                // fwiw
-                // http://karma-runner.github.io/6.4/dev/public-api.html
-                // I'm not sure why it names the callback function.
-                const server = new Server(parsedKarmaConfig, function doneCallback(
-                    exitCode
-                ) {
-                    utils.debugLog("Karma has exited with " + exitCode);
-                    utils.debugLog(arguments);
+                        var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
+                        fs.readdir(coverageDir, function (err, list) {
+                            var latestCoverageDir = "";
+                            var latestTime = 0;
+                            utils.debugLog(list, err);
 
-                    var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
-
-                    fs.readdir(coverageDir, function (err, list) {
-                        var latestCoverageDir = "";
-                        var latestTime = 0;
-                        utils.debugLog(list, err);
-
-                        list.forEach((file) => {
-                            // TODO: Change when we have other browsers, natch.
-                            if (file.indexOf("Chrome") > -1) {
-                                var fullPath = nodePath.join(coverageDir, file);
-                                var statsObj = fs.statSync(fullPath);
-                                if (statsObj.isDirectory()) {
-                                    utils.debugLog(`
+                            list.forEach((file) => {
+                                // TODO: Change when we have other browsers, natch.
+                                if (file.indexOf("Chrome") > -1) {
+                                    var fullPath = nodePath.join(coverageDir, file);
+                                    var statsObj = fs.statSync(fullPath);
+                                    if (statsObj.isDirectory()) {
+                                        utils.debugLog(`
 path: ${fullPath}
 last accessed: ${statsObj.atimeMs},
 last changed:  ${statsObj.ctimeMs},
 last modified: ${statsObj.mtimeMs},
                                 `);
+                                    }
+
+                                    if (statsObj.ctimeMs > latestTime) {
+                                        latestTime = statsObj.ctimeMs;
+                                        latestCoverageDir = fullPath;
+                                    }
+                                }
+                            });
+
+                            if (latestCoverageDir) {
+                                utils.debugLog(latestCoverageDir);
+
+                                if (outFile) {
+                                    copyCoverageFiles(latestCoverageDir, outFile);
+                                    // We're going to let you open the file yourself if you used coveragehtml
+                                    // mostly because that's what Chutzpah Runner does.
+                                } else {
+                                    var coverageFilePath = nodePath.join(
+                                        latestCoverageDir,
+                                        "index.html"
+                                    );
+                                    opener(coverageFilePath);
                                 }
 
-                                if (statsObj.ctimeMs > latestTime) {
-                                    latestTime = statsObj.ctimeMs;
-                                    latestCoverageDir = fullPath;
-                                }
+                                resolve(exitCode);
+                            } else {
+                                reject(new Error("No coverage directory found!"));
                             }
                         });
-
-                        if (latestCoverageDir) {
-                            utils.debugLog(latestCoverageDir);
-
-                            // TODO: Figure out why doneCallback is getting called twice.
-                            if (!serverHasStarted) {
-                                serverHasStarted = true;
-                                var serverApp =
-                                    expressServer.startPassthrough(latestCoverageDir);
-
-                                var expressPort = 3000;
-                                serverApp.listen(expressPort, function () {
-                                    utils.debugLog(
-                                        `Example app listening on port ${expressPort}!`
-                                    );
-                                });
-
-                                var handle = opener(
-                                    `http://localhost:${expressPort}/index.html`
-                                );
-                                utils.debugLog("handle pid: " + handle.pid);
-
-                                console.warn(
-                                    "Please note that stopping this process can replace " +
-                                        "your coverage report with a 404 error. Please stop on when you're ready."
-                                );
-                            }
-                        } else {
-                            console.warn("No coverage directory found!");
-                        }
                     });
 
-                    // process.exit(exitCode);
-                });
-
-                server.start();
-            },
-            (rejectReason) => {
-                /* respond to the rejection reason error */
-                console.error("Error", rejectReason);
-            }
-        );
+                    server.start();
+                },
+                (rejectReason) => {
+                    /* respond to the rejection reason error */
+                    console.error("Error", rejectReason);
+                }
+            );
+    });
 }
 
-function runKarmaCoverage(configInfo) {
+function runKarmaCoverage(configInfo, outFile) {
     // The config object gives back a collection of all refs (not tests)
     // in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
@@ -136,9 +146,29 @@ function runKarmaCoverage(configInfo) {
         preprocessors: preprocessObj,
     };
 
+    var codeCoverageSuccessPercentage = parseInt(
+        configInfo.codeCoverageSuccessPercentage,
+        10
+    );
+
+    if (codeCoverageSuccessPercentage) {
+        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
+        overrides.coverageReporter = {
+            check: {
+                emitWarning: false,
+                global: {
+                    statements: codeCoverageSuccessPercentage,
+                    branches: codeCoverageSuccessPercentage,
+                    functions: codeCoverageSuccessPercentage,
+                    lines: codeCoverageSuccessPercentage,
+                },
+            },
+        };
+    }
+
     utils.debugLog("config overrides for karma:", overrides);
 
-    return startKarma(overrides);
+    return startKarma(overrides, outFile);
 }
 
 if (require.main === module) {
