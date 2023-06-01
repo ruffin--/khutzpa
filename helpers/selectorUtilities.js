@@ -7,8 +7,10 @@ const utils = require("./utils");
 // B. minimatch won't match ../ equivalents in "collapsed" paths.
 // > . and .. are maintained in the pattern, meaning that they must also appear in the same position in
 // > the test path string. Eg, a pattern like a/*/../c will match the string a/b/../c but not the string a/c.
-//      Treatise on glob "standards":
+//      Further reading:
 //          https://github.com/isaacs/minimatch/issues/30#issuecomment-1040599045
+//      Treatise on glob "standards":
+//          https://github.com/isaacs/minimatch/issues/172#issuecomment-1359582179
 //      (It looked like optimizationLevel:2 would change that, but it doesn't.)
 //      https://github.com/isaacs/minimatch#optimizationlevel
 //      (Appears that's b/c you're using v5, not v7+)
