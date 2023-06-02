@@ -145,7 +145,7 @@ Note that khutzpa [purposefully] opens a new Terminal window ***that must be clo
 
 #### Warnings (macOS)
 
-One known limitation: Right now, the runner is sending a filename for the **coverage** output that khutzpa is ignoring. You can see this under [Chutzpah's command-line options](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options).
+One limitation: Chutzpah Runner is sending a filename for the **coverage** output. You can see this under [Chutzpah's command-line options](https://github.com/mmanela/chutzpah/wiki/Command-Line-Options).
 
 The options, which you can view in VS Code's Output window, will look like this:
 
@@ -153,11 +153,9 @@ The options, which you can view in VS Code's Output window, will look like this:
 /coveragehtml /var/folders/ry/9v79xg1j7n9fzdfygqmb4q180000gp/T/coverage-4yOxQ2.html
 ```
 
-For now, khutzpa is ignoring that option and opening the coverage html separately.
+For now, khutzpa is somewhat ham-handedly creating the coverage files where it normally does (usually in the same root dir as the Chutzpah.json file), copying all those files over to the directory given (`/var/folders/ry/9v79xg1j7n9fzdfygqmb4q180000gp/T/` in the above example), and then copying `index.html` into whatever that crazy file name is (`coverage-4yOxQ2.html` in the example).
 
-Probably not a _huge_ deal, but do note that means you'll have two html files open in your browser with each coverage run for now, one from the Chutzpah Runner extension (that `coverage-4yOxQ2.html` represents) & one from khutzpa.
-
-The weirdly named html file name & opened by the Runner will be empty. Again, not super high on the alpha fix list, but we'll get there.
+Probably not a _huge_ deal, but note that this means you'll have two sets of html files in your file system with each coverage run for now, one from the Chutzpah Runner extension (that `coverage-4yOxQ2.html` represents) & the one khutzpa creates and copies over.
 
 ---
 
