@@ -11,9 +11,7 @@ khutzpa provides:
 
 khutzpa is designed to be run from the command line and/or using the [Chutzpah Runner for VS Code](https://marketplace.visualstudio.com/items?itemName=dfrencham.chutzpahrunner). <a href="#future">Future plans</a> include a Visual Studio Classic extension set.
 
-Now look, real talk, this is an alpha I initially wrote between visits by the extended fam, in-laws, taxiing kids, etc., and then worked into Windows shape while testing it at the day job. The code is still in need of a serious refactor pass even if it seems to work okay. It'll get better, if only because it hurts my eyes to look at right now. `(╯°□°）╯︵ ┻━┻`
-
-Still, amazingly, it seems to mostly work.
+Amazingly, it seems to mostly work.
 
 ---
 
