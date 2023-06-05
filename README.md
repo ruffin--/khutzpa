@@ -68,7 +68,7 @@ Example:
 Note that for `/openInBrowser` or `/coverage`, both [standard Chutzpah.exe commands](https://github.com/mmanela/chutzpah/wiki/command-line-options), khutzpa **walks up** the folder hierarchy from the path given until it finds a Chutzpah.json. This means your path can be either...
 
 1. A direct path to the Chutzpah.json file --OR--
-2. Any *child* folder of the folder that contains Chutzpah.json whose parents contain a Chutzpah.json file
+2. Any *child* folder of a folder that contains a Chutzpah.json file
 
 So instead of this command:
 
