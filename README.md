@@ -35,16 +35,14 @@ On the command line, khutzpa currently at least partially supports these legacy 
     * **Must be the first option**
 * `/{command}`s
     * `/openInBrowser`
-        * Can occur anywhere
+        * Can occur anywhere (except the first option, which is the path)
         * Means we're running the Jasmine [stand](https://jasmine.github.io/pages/getting_started.html)-<a href="https://www.testingdocs.com/getting-started-with-jasmine-standalone/" style="color:orange">alone</a> test suite and serving the results in a browser.
     * `/coverage`
-        * Can occur anywhere
+        * Can occur anywhere (except the first option, which is the path)
         * Currently very limited.
             * A coverage run will be performed in Chrome (corollary: Chrome must be installed)
             * It is output to html
-            * It is opened in your default browser using a utility server
-                * Currently even the server's port is static and cannot be changed (currently 3000).
-                * That means if you try to run khutzpa twice without closing the first instance the second call could error out.
+            * It is written to a coverage dir at the same root as your Chutzpah.json
 
 
 Example:
