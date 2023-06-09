@@ -17,23 +17,8 @@
         "Enabled": true,
         "RootPath": "../"
     },
-    "References": [
-        {
-            "Path": "/fakeCode/",
-            "Includes": ["*.js"],
-            "Excludes": ["/**/*.tests.js", "*.test.js"]
-        }
-        // { "Path": "/fakeCode/double.js" }
-    ],
-    "Tests": [
-        {
-            // remember this is relative to the json file's parent.
-            "Path": "/",
-            "Includes": "**/*.test.js",
-            // "Excludes": ["**/karma.test.js", "**/add2.test.js"] // no failing tests
-            "Excludes": ["**/karma.test.js"] // with one failing test
-        }
-    ],
+    "References": [{ "Includes": ["*.js"] }],
+    "Tests": [{ "Includes": ["**/*.test.js"] }],
     "CodeCoverageIncludes": ["**/*.js"],
-    "CodeCoverageExcludes": ["*.test.js"]
+    "CodeCoverageExcludes": ["**/*.test.js"]
 }
