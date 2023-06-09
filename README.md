@@ -33,16 +33,15 @@ On the command line, khutzpa currently at least partially supports these legacy 
     * **Must be the first option**
 * Common `/{command}`s:
     * `/openInBrowser`
-        * Can occur anywhere
+        * Can occur anywhere (except the first option, which is the path)
         * If no `/{command}` is given, this is the default.
         * Means we're running the Jasmine [stand](https://jasmine.github.io/pages/getting_started.html)-<a href="https://www.testingdocs.com/getting-started-with-jasmine-standalone/" style="color:orange">alone</a> test suite and serving the results in a browser.
     * `/coverage`
-        * Can occur anywhere
+        * Can occur anywhere (except the first option, which is the path)
         * Currently very limited.
             * A coverage run will be performed in Chrome (corollary: Chrome must be installed)
-            * It is output to html
+            * It is written to a coverage dir at the same root as your Chutzpah.json
             * It is opened in your default browser
-
 
 Example:
 
