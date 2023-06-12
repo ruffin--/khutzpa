@@ -4,7 +4,7 @@ const { isString } = require("./stringManipulation");
 const settingsCue = "x:";
 
 let areDebugging = false;
-let dontLogToConsole = true;
+let logLevel = 50;
 let logAllToFile = false;
 
 function csvToLiteral(csv) {
@@ -12,8 +12,20 @@ function csvToLiteral(csv) {
     // csvs are fun, though. https://stackoverflow.com/a/23574271/1028230
     var values = csv.split(",");
     var literal = {};
+    var ignore = [];
 
-    values.forEach((x) => (literal[x] = true));
+    values.forEach((x, i) => {
+        if (ignore.indexOf(i) === -1) {
+            switch (x) {
+                case "logLevel":
+                    literal[x] = parseInt(values[i + 1], 10);
+                    ignore.push(i + 1);
+                    break;
+                default:
+                    literal[x] = true;
+            }
+        }
+    });
 
     return literal;
 }
@@ -47,25 +59,6 @@ function isParseable(jsonString) {
 // yes, we lose the settings hack here.
 function alwaysLog() {
     debugLog(`${settingsCue}alwaysLog`, ...arguments);
-}
-
-function logWithLevel() {
-    var argsAsArray = [].slice.call(arguments);
-    var level = parseInt(argsAsArray.shift(), 10);
-
-    if (!level) {
-        throw new Error("must include a log level");
-    }
-
-    switch (level) {
-        case 1:
-            alwaysLog(...argsAsArray);
-            break;
-
-        case 2:
-        default:
-            debugLog(...argsAsArray);
-    }
 }
 
 function debugLog() {
@@ -113,7 +106,7 @@ function debugLog() {
         }
     }
 
-    if (!dontLogToConsole || settings.alwaysLog) {
+    if (settings.logLevel >= logLevel || logLevel === 0 || settings.alwaysLog) {
         if (settings.asjson || args.length === 1) {
             args.forEach((arg) =>
                 console.log(isString(arg) ? arg : JSON.stringify(arg, null, "  "))
@@ -133,12 +126,11 @@ function mcDebugger() {
 }
 
 module.exports = {
-    logWithLevel,
     debugLog,
     alwaysLog,
     mcDebugger,
     isParseable,
     areDebugging,
-    dontLogToConsole,
+    logLevel,
     logAllToFile,
 };

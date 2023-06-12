@@ -154,6 +154,7 @@ function runKarmaCoverage(configInfo, outFile) {
     if (codeCoverageSuccessPercentage) {
         // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
         overrides.coverageReporter = {
+            reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
             check: {
                 emitWarning: false,
                 global: {

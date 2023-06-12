@@ -1,39 +1,19 @@
 {
-    "AggresiveStar": true,
-    "Framework": "jasmine",
-    "FrameworkVersion": "3",
-    "Engine": "JSDom",
-
-    // https://github.com/mmanela/chutzpah/wiki/Chutzpah.json-Settings-File
-    // By default (the DriveRoot setting) if you write Chutzpah will look for a.js under C:\
-    // (assuming you are running your test in the C drive).
-    // However, if you set this property to SettingsFileDirectory Chutpah will now look for a.js
-    // relative to the location of the chutzpah.json file.
-    // This is useful if you have a large project and want to minimize the number of long reference paths.
-    "RootReferencePathMode": "SettingsFileDirectory",
-    "TestFileTimeout": 10000,
-    "CodeCoverageTimeout": 10000,
-    "Server": {
-        "Enabled": true,
-        "RootPath": "../"
-    },
     "References": [
         {
-            "Path": "/fakeCode/",
-            "Includes": ["*.js"],
-            "Excludes": ["/**/*.tests.js", "*.test.js"]
+            "Path": "/source/",
+            "Includes": "**/*.js",
+            "Excludes": ["**/add2.misplaced_in_source.test.js", "**/coverage/**"]
         }
-        // { "Path": "/fakeCode/double.js" }
     ],
     "Tests": [
         {
-            // remember this is relative to the json file's parent.
-            "Path": "/",
+            "Path": "/tests/",
             "Includes": "**/*.test.js",
-            // "Excludes": ["**/karma.test.js", "**/add2.test.js"] // no failing tests
-            "Excludes": ["**/karma.test.js"] // with one failing test
+            "Excludes": ["**/coverage/**"]
         }
     ],
     "CodeCoverageIncludes": ["**/*.js"],
-    "CodeCoverageExcludes": ["*.test.js"]
+    "CodeCoverageExcludes": ["**/*test.js"],
+    "CodeCoverageSuccessPercentage": 80
 }

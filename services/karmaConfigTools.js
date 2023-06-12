@@ -1,4 +1,5 @@
 const karma = require("karma");
+const utils = require("../helpers/utils");
 
 // For the files option:
 /*
@@ -44,13 +45,12 @@ const overridesForCoverage = {
     // possible values: 'dots', 'progress'
     // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
     // coverage reporter generates the coverage
-    reporters: ["progress", "coverage"],
+    reporters: ["coverage"],
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
     coverageReporter: {
-        type: "html",
-        dir: "coverage/",
+        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
     },
 };
 
@@ -84,6 +84,8 @@ const createKarmaConfig = function (overrides) {
     if (!overrides) {
         overrides = overridesForCoverage;
     }
+
+    utils.debugLog("x:logLevel,5", overrides);
 
     var baseConfig = {
         // frameworks to use

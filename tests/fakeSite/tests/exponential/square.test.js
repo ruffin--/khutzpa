@@ -1,4 +1,4 @@
-describe("these are not real tests", function () {
+describe("square.test.js", function () {
     "use strict";
 
     describe("square function in global scope", function () {

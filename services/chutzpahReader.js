@@ -180,7 +180,7 @@ function handleAggressiveStar(configInfo) {
 }
 
 // GET ALL REFERENCE FILES (files needed to run stuff)
-function getRefFiles(chutzpahConfigObj, jsonFileParent) {
+function findAllRefFiles(chutzpahConfigObj, jsonFileParent) {
     var allRefFilePaths = [];
     chutzpahConfigObj.References.forEach(function (singleReferenceEntry, i) {
         var filesForSelector = handleChutzpahSelector(
@@ -274,7 +274,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
         handleAggressiveStar(chutzpahConfigObj);
     }
 
-    var allRefFilePaths = getRefFiles(chutzpahConfigObj, jsonFileParent);
+    var allRefFilePaths = findAllRefFiles(chutzpahConfigObj, jsonFileParent);
     var specFiles = getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent);
 
     if (!specFiles.length) {
@@ -296,11 +296,15 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
         jsonFileParent
     );
 
-    return {
+    var toReturn = {
         allRefFilePaths,
         specFiles,
         coverageFiles,
     };
+
+    utils.debugLog("x:logLevel,5", toReturn);
+
+    return toReturn;
 }
 
 function findChutzpahJson(startPath) {

@@ -1,4 +1,4 @@
-describe("these are not real tests", function () {
+describe("double.wrongFolder.test.js", function () {
     "use strict";
 
     describe("double function in global scope", function () {
