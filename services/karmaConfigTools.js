@@ -88,6 +88,17 @@ const createKarmaConfig = function (overrides) {
     utils.debugLog("x:logLevel,5", overrides);
 
     var baseConfig = {
+        // For the scoped npm package karma-coverage workaround
+        // https://karma-runner.github.io/2.0/config/plugins.html
+        // Note that it doesn't *also* load up the karma-* sibling npms
+        // the way it did before. You are now on the hook for all of them.
+        plugins: [
+            "@rufwork/karma-coverage",
+            "karma-chrome-launcher",
+            "karma-jasmine",
+            "karma-mocha-reporter",
+        ],
+
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
         frameworks: ["jasmine"],
