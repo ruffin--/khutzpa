@@ -3,7 +3,7 @@
         {
             "Path": "/source/",
             "Includes": "**/*.js",
-            "Excludes": ["**/add2.misplaced_in_source.test.js", "**/coverage/**"]
+            "Excludes": ["**/coverage/**"]
         }
     ],
     "Tests": [
