@@ -63,7 +63,7 @@ function filterNonexistentPaths(fullPaths, type) {
     type = type || "References";
 
     return fullPaths.filter((fullPath) => {
-        if (!fs.existsSync(fullPath)) {
+        if (!fullPath.toLowerCase().startsWith("http") && !fs.existsSync(fullPath)) {
             console.warn(
                 `#### File listed in Chutzpah config's ${type} does not exist!
 ${fullPath}`

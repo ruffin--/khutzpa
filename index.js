@@ -57,7 +57,9 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
 
             fnAction = function (configInfo) {
                 var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
-                var root = findTheRoot(allFiles);
+                var root = findTheRoot(
+                    allFiles.filter((x) => !x.toLowerCase().startsWith("http"))
+                );
 
                 return specRunner.createSpecHtml(configInfo, false, root).then(
                     (results) => {
