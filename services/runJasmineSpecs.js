@@ -77,11 +77,19 @@ Note: There is currently no way to override this check.
 
 TODO: Allow overriding this check.`);
         } else {
-            // This is kinda hacky. If there are more extensions we're worried about, refactor
-            // a bit.
-            forRunner += (
-                filePath.endsWith(".css") ? stylesheetTemplate : scriptTemplate
-            ).replace("1", nodePath.relative(root, filePath));
+            var templateNow = filePath.toLowerCase().endsWith(".css")
+                ? stylesheetTemplate
+                : scriptTemplate;
+
+            forRunner +=
+                // This is kinda hacky. If there are more extensions we're worried about, refactor.
+                templateNow.replace(
+                    "1",
+                    // This is tacked on: If it's http, don't append a relative root.
+                    filePath.toLowerCase().startsWith("http")
+                        ? filePath
+                        : nodePath.relative(root, filePath)
+                );
         }
     }
 

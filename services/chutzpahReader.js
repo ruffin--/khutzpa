@@ -37,6 +37,13 @@ function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
         jsonFileParent: chutzpahJsonFileParent,
     });
 
+    // Tacked on logic to handle paths hosted via http.
+    if (selector.Path.toLowerCase().startsWith("http")) {
+        // Currently no QA for web paths -- invalid url, you're toast.
+        // TODO: Support gopher:// ?
+        return [selector.Path];
+    }
+
     if (!selector.Path) {
         selector.Path = chutzpahJsonFileParent;
     }
