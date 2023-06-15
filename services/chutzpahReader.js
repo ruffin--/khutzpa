@@ -5,6 +5,7 @@ const nodePath = require("node:path");
 const fileSystemService = require("./fileSystemService");
 const utils = require("../helpers/utils");
 const selectorUtils = require("../helpers/selectorUtilities");
+const prompt = require("prompt-sync")({ sigint: true });
 
 // TODO: This seems like it should be unnecessary, but also makes values
 // easier to grok when debugging. I can't tell if it's too hacky or legit.
@@ -213,29 +214,49 @@ function findAllRefFiles(chutzpahConfigObj, jsonFileParent) {
     return allRefFilePaths;
 }
 
+// GET ALL FILES THAT HAVE TESTS TO RUN
 function getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent) {
-    // GET ALL FILES THAT HAVE TESTS TO RUN
+    // Had a report of khutzpa not working with a single file.
+    // Was because the file did not contain tests!
+    // Let's check for that here by ensuring it's covered by the Tests property.
+    // This means we have to get the Tests even in singleTestFile mode.
     var specFiles = [];
-    if (!singleTestFile) {
-        chutzpahConfigObj.Tests.forEach(function (singleReferenceEntry, i) {
-            var filesForSelector = handleChutzpahSelector(
-                singleReferenceEntry,
-                jsonFileParent,
-                "Test",
-                i
-            );
+    chutzpahConfigObj.Tests.forEach(function (singleReferenceEntry, i) {
+        var filesForSelector = handleChutzpahSelector(
+            singleReferenceEntry,
+            jsonFileParent,
+            "Test",
+            i
+        );
 
-            specFiles = mergeDedupeAndStandardizePathSeparator(
-                specFiles,
-                filesForSelector
-            );
-        });
-    } else {
+        specFiles = mergeDedupeAndStandardizePathSeparator(specFiles, filesForSelector);
+    });
+
+    if (singleTestFile) {
+        if (specFiles.indexOf(singleTestFile.replace(/\\/g, "/")) === -1) {
+            console.error(`
+
+You have given khutzpa a parameter pointing to a single file
+(not a directory):
+
+${singleTestFile}
+
+!!!!!! That file is not included by your configuration file's \`Tests\` selectors. !!!!!!
+
+There are no tests to run.
+`);
+            if (!chutzpahConfigObj.noUserInput) {
+                prompt(
+                    "Press return to exit khutzpa (and set noUserInput in config to remove this pause)."
+                );
+            }
+            process.exit(2);
+        }
+
         specFiles = [singleTestFile];
     }
 
-    specFiles = fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
-    return specFiles;
+    return fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
 }
 
 function getCoverageFiles(chutzpahConfigObj, allRefFilePaths, jsonFileParent) {
@@ -392,6 +413,7 @@ function getConfigInfo(originalTestPath) {
             originalTestPath,
             configFilePath,
             jsonFileParent,
+            singleTestFile,
             allRefFilePaths: info.allRefFilePaths,
             specFiles: info.specFiles,
             coverageFiles: info.coverageFiles,
@@ -434,4 +456,3 @@ module.exports = {
     getConfigInfo,
     findChutzpahJson, // okay, this was made public only for testing. That's bad.
 };
-
