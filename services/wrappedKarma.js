@@ -61,8 +61,8 @@ function startKarma(karmaRunId, overrides) {
 }
 
 function runWrappedKarma(configInfo, karmaRunId) {
-    // The config object gives back a collection of all refs (not tests)
-    // in allRefFilePaths and the tests in specFiles.
+    // The config object gives back a collection of all refs (ie, required
+    // files that arne't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -90,8 +90,13 @@ function runWrappedKarma(configInfo, karmaRunId) {
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
     };
-    utils.debugLog("config overrides for karma:", overrides);
 
+    // if we only have one test file, no reason to do any coverage.
+    if (configInfo.singleTestFile) {
+        overrides.reporters = ["mocha"];
+    }
+
+    utils.debugLog("config overrides for karma:", overrides);
     return startKarma(karmaRunId, overrides);
 }
 
