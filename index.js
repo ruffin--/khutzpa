@@ -185,7 +185,7 @@ var actionTypes = {
     FIND_ALL_CHUTZPAHS: 4,
     WALK_ALL_RUN_ONE: 5,
     PRINT_USAGE: 6,
-    RUN_ONE_IN_KARMA: 7,
+    RUN_ONE_IN_KARMA: 7, // the default
 };
 
 if (require.main === module) {
@@ -231,9 +231,9 @@ if (require.main === module) {
                     Array.isArray(resultsIfAny) &&
                     !resultsIfAny.every((x) => x === undefined)
                 ) {
-                    console.log("::RESULTS::");
+                    console.log("\n\n::RESULTS::");
                     console.log(resultsIfAny);
-                    console.log("::eoRESULTS::");
+                    console.log("::eoRESULTS::\n\n");
 
                     const firstError = resultsIfAny.find((x) => x && x !== 0);
 

@@ -61,6 +61,10 @@ function alwaysLog() {
     debugLog(`${settingsCue}alwaysLog`, ...arguments);
 }
 
+function log50() {
+    debugLog(`${settingsCue}loglevel,50`, ...arguments);
+}
+
 function debugLog() {
     var args = [].slice.call(arguments);
     // eslint-disable-next-line
@@ -127,6 +131,7 @@ function mcDebugger() {
 
 module.exports = {
     debugLog,
+    log50,
     alwaysLog,
     mcDebugger,
     isParseable,
