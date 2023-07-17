@@ -31,7 +31,7 @@ function copyCoverageFiles(coverageDir, newIndexLoc) {
     fs.copyFileSync(oldIndexLoc, newIndexLoc);
 }
 
-function startKarma(overrides, outFile) {
+function startKarmaCoverageRun(overrides, outFile) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
     var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
     utils.debugLog(karmaConfig);
@@ -118,8 +118,8 @@ last modified: ${statsObj.mtimeMs},
 }
 
 function runKarmaCoverage(configInfo, outFile) {
-    // The config object gives back a collection of all refs (not tests)
-    // in allRefFilePaths and the tests in specFiles.
+    // The config object gives back a collection of all refs (ie, required
+    // files that aren't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -137,10 +137,12 @@ function runKarmaCoverage(configInfo, outFile) {
     var overrides = {
         port: 9876,
         basePath: configInfo.jsonFileParent,
-        // files: [{ pattern: "**/*.js", nocache: true }],
+        // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
+
         // string-only is equivalent to...
-        // equal to {pattern: theStringPath, watched: true, served: true, included: true}
+        // {pattern: theStringPath, watched: true, served: true, included: true}
         files: allFiles,
+
         // everything but the tests.
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,
@@ -167,9 +169,25 @@ function runKarmaCoverage(configInfo, outFile) {
         };
     }
 
+    // This creates a file needed for TFS integration.
+    // More info:
+    // https://stackoverflow.com/q/38952063/1028230
+    // https://github.com/hatchteam/karma-trx-reporter
+    // TODO: Instead of Object.assign, consider a merge that merges matching (by prop name) arrays?
+    // This overrides where you're really setting something is getting wack.
+    if (!configInfo.createTrxFileForTfs) {
+        overrides.reporters = ["coverage", "trx"];
+
+        console.warn("TODO: get trx output path from config");
+        overrides.trxReporter = {
+            outputFile: "test-results.trx",
+            shortTestName: false,
+        };
+    }
+
     utils.debugLog("config overrides for karma:", overrides);
 
-    return startKarma(overrides, outFile);
+    return startKarmaCoverageRun(overrides, outFile);
 }
 
 if (require.main === module) {
@@ -180,7 +198,7 @@ if (require.main === module) {
 
     var basePath = myArgs[0];
 
-    startKarma(basePath).then(function () {
+    startKarmaCoverageRun(basePath).then(function () {
         utils.alwaysLog("done");
     });
 }
