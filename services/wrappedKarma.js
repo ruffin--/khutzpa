@@ -62,7 +62,7 @@ function startKarma(karmaRunId, overrides) {
 
 function runWrappedKarma(configInfo, karmaRunId) {
     // The config object gives back a collection of all refs (ie, required
-    // files that arne't tests) in allRefFilePaths and the tests in specFiles.
+    // files that aren't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -80,10 +80,10 @@ function runWrappedKarma(configInfo, karmaRunId) {
     var overrides = {
         port: 9876,
         basePath: configInfo.jsonFileParent,
-
         // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
+
         // string-only is equivalent to...
-        // equal to {pattern: theStringPath, watched: true, served: true, included: true}
+        // {pattern: theStringPath, watched: true, served: true, included: true}
         files: allFiles,
 
         // everything but the tests.
