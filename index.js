@@ -36,6 +36,11 @@ khutzpa /path/to/root/directory /{command}
     /usage
 
 `);
+
+    // If you're showing usage you may have had a bogus command.
+    // Chances are, if you care about return values, you don't want
+    // usage shown.
+    process.exit(846); // "bad"
 }
 
 function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
