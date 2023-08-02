@@ -45,7 +45,7 @@ const overridesForCoverage = {
     // possible values: 'dots', 'progress'
     // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
     // coverage reporter generates the coverage
-    reporters: ["coverage"],
+    reporters: ["coverage", "mocha"],
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
