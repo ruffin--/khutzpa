@@ -2,7 +2,9 @@ const karma = require("karma");
 const Server = karma.Server;
 const fs = require("fs");
 const nodePath = require("node:path");
-const opener = require("opener");
+// const opener = require("opener"); // this was not opening reliably. (Cue Seinfeld)
+const execSync = require("child_process").execSync;
+const os = require("node:os");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
@@ -31,7 +33,7 @@ function copyCoverageFiles(coverageDir, newIndexLoc) {
     fs.copyFileSync(oldIndexLoc, newIndexLoc);
 }
 
-function startKarma(overrides, outFile) {
+function startKarmaCoverageRun(overrides, outFile) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
     var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
     utils.debugLog(karmaConfig);
@@ -97,7 +99,22 @@ last modified: ${statsObj.mtimeMs},
                                         latestCoverageDir,
                                         "index.html"
                                     );
-                                    opener(coverageFilePath);
+
+                                    const openerCmd =
+                                        os.platform() === "win32"
+                                            ? `rundll32 url.dll,FileProtocolHandler ${coverageFilePath}`
+                                            : `open ${coverageFilePath}`;
+
+                                    execSync(openerCmd, {
+                                        encoding: "utf8",
+                                        timeout: 10000,
+                                    });
+
+                                    // this was not opening reliably on Windows.
+                                    // possibly related: https://github.com/domenic/opener/issues/31
+                                    // opener(coverageFilePath, undefined, function () {
+                                    //     console.log("opener done");
+                                    // });
                                 }
 
                                 resolve(exitCode);
@@ -169,7 +186,7 @@ function runKarmaCoverage(configInfo, outFile) {
 
     utils.debugLog("config overrides for karma:", overrides);
 
-    return startKarma(overrides, outFile);
+    return startKarmaCoverageRun(overrides, outFile);
 }
 
 if (require.main === module) {
@@ -180,7 +197,7 @@ if (require.main === module) {
 
     var basePath = myArgs[0];
 
-    startKarma(basePath).then(function () {
+    startKarmaCoverageRun(basePath).then(function () {
         utils.alwaysLog("done");
     });
 }
