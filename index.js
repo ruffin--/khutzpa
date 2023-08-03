@@ -202,7 +202,6 @@ if (require.main === module) {
         utils.debugLog("myArgs: ", myArgs);
 
         if (myArgs.indexOf("/version") > -1) {
-            const packageInfo = require("./package.json");
             return console.log(packageInfo.version);
         }
 
