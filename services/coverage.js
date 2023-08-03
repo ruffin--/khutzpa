@@ -2,12 +2,10 @@ const karma = require("karma");
 const Server = karma.Server;
 const fs = require("fs");
 const nodePath = require("node:path");
-// const opener = require("opener"); // this was not opening reliably. (Cue Seinfeld)
-const execSync = require("child_process").execSync;
-const os = require("node:os");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
+const urlOpener = require("./urlOpener");
 
 // https://stackoverflow.com/a/52338335/1028230
 function copyFolderSync(from, to) {
@@ -100,21 +98,7 @@ last modified: ${statsObj.mtimeMs},
                                         "index.html"
                                     );
 
-                                    const openerCmd =
-                                        os.platform() === "win32"
-                                            ? `rundll32 url.dll,FileProtocolHandler ${coverageFilePath}`
-                                            : `open ${coverageFilePath}`;
-
-                                    execSync(openerCmd, {
-                                        encoding: "utf8",
-                                        timeout: 10000,
-                                    });
-
-                                    // this was not opening reliably on Windows.
-                                    // possibly related: https://github.com/domenic/opener/issues/31
-                                    // opener(coverageFilePath, undefined, function () {
-                                    //     console.log("opener done");
-                                    // });
+                                    urlOpener.openUrl(coverageFilePath);
                                 }
 
                                 resolve(exitCode);
