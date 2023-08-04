@@ -33,6 +33,7 @@ khutzpa /path/to/root/directory /{command}
     /runOne
     /findAllSuites
     /walkAllRunOne
+    /version
     /usage
 
 `);
