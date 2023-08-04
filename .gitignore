@@ -7,3 +7,4 @@ coverage
 tests/testChutzpahReader.js
 log.txt
 testMe.bat
+testMe.sh

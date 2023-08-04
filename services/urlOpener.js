@@ -12,7 +12,7 @@ function openUrl(url) {
     const openerCmd =
         os.platform() === "win32"
             ? `rundll32 url.dll,FileProtocolHandler ${url}`
-            : `open ${url}`;
+            : `open "${url}"`;
 
     execSync(openerCmd, {
         encoding: "utf8",
