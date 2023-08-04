@@ -1,6 +1,6 @@
 {
     "name": "khutzpa",
-    "version": "0.0.1-alpha.14",
+    "version": "0.0.1-alpha.15",
     "description": "Node powered, cross-platform, drop-in replacement for Chutzpah.exe",
     "main": "index.js",
     "bin": {
