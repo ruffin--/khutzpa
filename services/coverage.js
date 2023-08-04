@@ -170,22 +170,6 @@ function runKarmaCoverage(configInfo, outFile) {
         };
     }
 
-    // This creates a file needed for TFS integration.
-    // More info:
-    // https://stackoverflow.com/q/38952063/1028230
-    // https://github.com/hatchteam/karma-trx-reporter
-    // TODO: Instead of Object.assign, consider a merge that merges matching (by prop name) arrays?
-    // This overrides where you're really setting something is getting wack.
-    if (!configInfo.createTrxFileForTfs) {
-        overrides.reporters = ["coverage", "trx"];
-
-        console.warn("TODO: get trx output path from config");
-        overrides.trxReporter = {
-            outputFile: "test-results.trx",
-            shortTestName: false,
-        };
-    }
-
     utils.debugLog("config overrides for karma:", overrides);
 
     return startKarmaCoverageRun(overrides, outFile);
