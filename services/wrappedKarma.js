@@ -3,9 +3,12 @@
  * test suite when exexcuted.
  ************************************************/
 const karma = require("karma");
+const nodePath = require("node:path");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
+
+const winDrivePattern = new RegExp(/^[a-z]:\\/, "i");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
@@ -129,9 +132,19 @@ function runWrappedKarma(configInfo, karmaRunId) {
         if (configInfo.produceTrx) {
             overrides.reporters = ["coverage", "mocha", "trx"];
 
-            console.warn("TODO: get trx output path from config");
+            let trxPath = configInfo.trxPath || "khutzpa-test-results.trx";
+
+            // TODO: The second check is problematic b/c we *accept* "/Relative/Path/file.js"
+            // in References and Tests. I'm not sure how to check for *NIX full paths without
+            // changing that setup or having a leading "/" mean different things for different
+            // config properties (like I do now (20230804), here).
+            // Check for the existence of the parent of the trxPath here? If not exists, join?
+            if (!winDrivePattern.test(trxPath) && !trxPath.startsWith("/")) {
+                trxPath = nodePath.join(configInfo.jsonFileParent, trxPath);
+            }
+
             overrides.trxReporter = {
-                outputFile: "test-results.trx",
+                outputFile: trxPath,
                 shortTestName: false,
             };
         }
