@@ -45,7 +45,7 @@ const overridesForCoverage = {
     // possible values: 'dots', 'progress'
     // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
     // coverage reporter generates the coverage
-    reporters: ["coverage"],
+    reporters: ["coverage", "mocha"],
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
@@ -88,19 +88,19 @@ const createKarmaConfig = function (overrides) {
     utils.debugLog("x:logLevel,5", overrides);
 
     var baseConfig = {
-        // For the scoped npm package karma-coverage workaround
+        // Remember that if any of your karma-* plugins are scoped or otherwise
+        // don't start with "karma-", you'll have to declare ALL of them.
         // https://karma-runner.github.io/2.0/config/plugins.html
-        // Note that it doesn't *also* load up the karma-* sibling npms
-        // the way it did before. You are now on the hook for all of them.
-        plugins: [
-            "@rufwork/karma-coverage",
-            "karma-chrome-launcher",
-            "karma-jasmine",
-            "karma-mocha-reporter",
-
-            // see createTrxFileForTfs
-            "karma-trx-reporter",
-        ],
+        // "By default, Karma loads all sibling NPM modules which have a name starting with karma-*...."
+        // plugins: [
+        //     "karma-coverage",
+        //     "karma-chrome-launcher",
+        //     "karma-jasmine",
+        //     "karma-mocha-reporter",
+        //
+        //     // see createTrxFileForTfs
+        //     "karma-trx-reporter",
+        // ],
 
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter

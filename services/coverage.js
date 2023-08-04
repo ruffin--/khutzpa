@@ -2,10 +2,10 @@ const karma = require("karma");
 const Server = karma.Server;
 const fs = require("fs");
 const nodePath = require("node:path");
-const opener = require("opener");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
+const urlOpener = require("./urlOpener");
 
 // https://stackoverflow.com/a/52338335/1028230
 function copyFolderSync(from, to) {
@@ -97,7 +97,8 @@ last modified: ${statsObj.mtimeMs},
                                         latestCoverageDir,
                                         "index.html"
                                     );
-                                    opener(coverageFilePath);
+
+                                    urlOpener.openUrl(coverageFilePath);
                                 }
 
                                 resolve(exitCode);

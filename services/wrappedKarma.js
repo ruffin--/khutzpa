@@ -94,6 +94,27 @@ function runWrappedKarma(configInfo, karmaRunId) {
     // if we only have one test file, no reason to do any coverage.
     if (configInfo.singleTestFile) {
         overrides.reporters = ["mocha"];
+    } else {
+        var codeCoverageSuccessPercentage = parseInt(
+            configInfo.codeCoverageSuccessPercentage,
+            10
+        );
+
+        if (codeCoverageSuccessPercentage) {
+            // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
+            overrides.coverageReporter = {
+                reporters: [{ type: "text-summary" }],
+                check: {
+                    emitWarning: false,
+                    global: {
+                        statements: codeCoverageSuccessPercentage,
+                        branches: codeCoverageSuccessPercentage,
+                        functions: codeCoverageSuccessPercentage,
+                        lines: codeCoverageSuccessPercentage,
+                    },
+                },
+            };
+        }
     }
 
     utils.debugLog("config overrides for karma:", overrides);

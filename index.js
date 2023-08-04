@@ -9,16 +9,16 @@ const coverageRunner = require("./services/coverage");
 const server = require("./services/expressServer");
 const wrappedKarma = require("./services/wrappedKarma");
 const utils = require("./helpers/utils");
+const packageInfo = require("./package.json");
 
-// https://github.com/domenic/opener
-const opener = require("opener");
 const chutzpahWalk = require("./services/chutzpahWalk");
 const { findTheRoot } = require("./helpers/findTheRoot");
+const urlOpener = require("./services/urlOpener");
 
 function printUsage() {
     console.warn(`
 =================================================
-khutzpa usage:
+khutzpa v${packageInfo.version} usage:
 =================================================
 
 khutzpa /path/to/root/directory /{command}
@@ -33,9 +33,15 @@ khutzpa /path/to/root/directory /{command}
     /runOne
     /findAllSuites
     /walkAllRunOne
+    /version
     /usage
 
 `);
+
+    // If you're showing usage you may have had a bogus command.
+    // Chances are, if you care about return values, you don't want
+    // usage shown.
+    process.exit(846); // "bad"
 }
 
 function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
@@ -71,10 +77,8 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
                             );
                         });
 
-                        var handle = opener(
-                            `http://localhost:${expressPort}/runner?random=false`
-                        );
-                        utils.debugLog(handle);
+                        var runnerUrl = `http://localhost:${expressPort}/runner?random=false`;
+                        urlOpener.openUrl(runnerUrl);
 
                         // this prevents the process.exit call.
                         // TODO: This is an ugly hack. Do better.
@@ -196,7 +200,6 @@ if (require.main === module) {
         utils.debugLog("myArgs: ", myArgs);
 
         if (myArgs.indexOf("/version") > -1) {
-            const packageInfo = require("./package.json");
             return console.log(packageInfo.version);
         }
 
