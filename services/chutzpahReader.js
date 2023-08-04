@@ -419,6 +419,8 @@ function getConfigInfo(originalTestPath) {
             coverageFiles: info.coverageFiles,
             codeCoverageSuccessPercentage:
                 chutzpahConfigObj.CodeCoverageSuccessPercentage,
+            produceTrx: chutzpahConfigObj.ProduceTrx,
+            trxPath: chutzpahConfigObj.TrxPath,
         };
     });
 }

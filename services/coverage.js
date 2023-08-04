@@ -2,12 +2,10 @@ const karma = require("karma");
 const Server = karma.Server;
 const fs = require("fs");
 const nodePath = require("node:path");
-// const opener = require("opener"); // this was not opening reliably. (Cue Seinfeld)
-const execSync = require("child_process").execSync;
-const os = require("node:os");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
+const urlOpener = require("./urlOpener");
 
 // https://stackoverflow.com/a/52338335/1028230
 function copyFolderSync(from, to) {
@@ -100,21 +98,7 @@ last modified: ${statsObj.mtimeMs},
                                         "index.html"
                                     );
 
-                                    const openerCmd =
-                                        os.platform() === "win32"
-                                            ? `rundll32 url.dll,FileProtocolHandler ${coverageFilePath}`
-                                            : `open ${coverageFilePath}`;
-
-                                    execSync(openerCmd, {
-                                        encoding: "utf8",
-                                        timeout: 10000,
-                                    });
-
-                                    // this was not opening reliably on Windows.
-                                    // possibly related: https://github.com/domenic/opener/issues/31
-                                    // opener(coverageFilePath, undefined, function () {
-                                    //     console.log("opener done");
-                                    // });
+                                    urlOpener.openUrl(coverageFilePath);
                                 }
 
                                 resolve(exitCode);
@@ -135,8 +119,8 @@ last modified: ${statsObj.mtimeMs},
 }
 
 function runKarmaCoverage(configInfo, outFile) {
-    // The config object gives back a collection of all refs (not tests)
-    // in allRefFilePaths and the tests in specFiles.
+    // The config object gives back a collection of all refs (ie, required
+    // files that aren't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -154,10 +138,12 @@ function runKarmaCoverage(configInfo, outFile) {
     var overrides = {
         port: 9876,
         basePath: configInfo.jsonFileParent,
-        // files: [{ pattern: "**/*.js", nocache: true }],
+        // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
+
         // string-only is equivalent to...
-        // equal to {pattern: theStringPath, watched: true, served: true, included: true}
+        // {pattern: theStringPath, watched: true, served: true, included: true}
         files: allFiles,
+
         // everything but the tests.
         // "**/!(*test).js": ["coverage"],
         preprocessors: preprocessObj,

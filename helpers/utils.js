@@ -62,7 +62,7 @@ function alwaysLog() {
 }
 
 function log50() {
-    debugLog(`${settingsCue}loglevel,50`, ...arguments);
+    debugLog(`${settingsCue}logLevel,50`, ...arguments);
 }
 
 function debugLog() {

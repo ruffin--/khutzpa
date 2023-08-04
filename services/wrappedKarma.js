@@ -3,9 +3,12 @@
  * test suite when exexcuted.
  ************************************************/
 const karma = require("karma");
+const nodePath = require("node:path");
 
 const karmaConfigTools = require("./karmaConfigTools");
 const utils = require("../helpers/utils");
+
+const winDrivePattern = new RegExp(/^[a-z]:\\/, "i");
 
 let karmaRunIds = [];
 let karmaRunResults = {};
@@ -62,7 +65,7 @@ function startKarma(karmaRunId, overrides) {
 
 function runWrappedKarma(configInfo, karmaRunId) {
     // The config object gives back a collection of all refs (ie, required
-    // files that arne't tests) in allRefFilePaths and the tests in specFiles.
+    // files that aren't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
     var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -80,10 +83,10 @@ function runWrappedKarma(configInfo, karmaRunId) {
     var overrides = {
         port: 9876,
         basePath: configInfo.jsonFileParent,
-
         // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
+
         // string-only is equivalent to...
-        // equal to {pattern: theStringPath, watched: true, served: true, included: true}
+        // {pattern: theStringPath, watched: true, served: true, included: true}
         files: allFiles,
 
         // everything but the tests.
@@ -95,6 +98,9 @@ function runWrappedKarma(configInfo, karmaRunId) {
     if (configInfo.singleTestFile) {
         overrides.reporters = ["mocha"];
     } else {
+        // this is actually the default, but let's be explicit.
+        overrides.reports = ["coverage", "mocha"];
+
         var codeCoverageSuccessPercentage = parseInt(
             configInfo.codeCoverageSuccessPercentage,
             10
@@ -113,6 +119,33 @@ function runWrappedKarma(configInfo, karmaRunId) {
                         lines: codeCoverageSuccessPercentage,
                     },
                 },
+            };
+        }
+
+        // This creates a file needed for TFS integration.
+        // More info:
+        // https://stackoverflow.com/q/38952063/1028230
+        // https://github.com/hatchteam/karma-trx-reporter
+        // TODO: Instead of Object.assign, consider a merge that merges matching
+        // (by prop name) arrays?
+        // This overrides where you're really setting something is getting wack.
+        if (configInfo.produceTrx) {
+            overrides.reporters = ["coverage", "mocha", "trx"];
+
+            let trxPath = configInfo.trxPath || "khutzpa-test-results.trx";
+
+            // TODO: The second check is problematic b/c we *accept* "/Relative/Path/file.js"
+            // in References and Tests. I'm not sure how to check for *NIX full paths without
+            // changing that setup or having a leading "/" mean different things for different
+            // config properties (like I do now (20230804), here).
+            // Check for the existence of the parent of the trxPath here? If not exists, join?
+            if (!winDrivePattern.test(trxPath) && !trxPath.startsWith("/")) {
+                trxPath = nodePath.join(configInfo.jsonFileParent, trxPath);
+            }
+
+            overrides.trxReporter = {
+                outputFile: trxPath,
+                shortTestName: false,
             };
         }
     }

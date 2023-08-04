@@ -97,6 +97,9 @@ const createKarmaConfig = function (overrides) {
         //     "karma-chrome-launcher",
         //     "karma-jasmine",
         //     "karma-mocha-reporter",
+        //
+        //     // see createTrxFileForTfs
+        //     "karma-trx-reporter",
         // ],
 
         // frameworks to use
