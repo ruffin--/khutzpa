@@ -42,7 +42,7 @@ function filterJasmine(collection) {
             jasmineHits.push(x);
         }
 
-        // Keep if NOT jasmine.
+        // Keep if does NOT contain jasmine (ie, most file).
         return !hit;
     });
 
@@ -53,7 +53,7 @@ ${jasmineHits.join("\n")}
 
 We're ignoring any files that contains the characters "jasmine" and ends in ".js".
 khutzpa provides its own version of jasmine.  Referencing another version of jasmine can
-break tests. Currently skipping this file.
+break tests. Currently skipping these file. (They may be listed multiple times.)
 
 Note: There is currently no way to override this check.
 TODO: Allow overriding this check.`);
