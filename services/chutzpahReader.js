@@ -31,6 +31,37 @@ function mergeDedupeAndStandardizePathSeparator(parentCollection, newFiles) {
     return parentCollection.concat(filesForSelectorDeduped);
 }
 
+// TODO: This is effectively but entirely too aggressive.
+function filterJasmine(collection) {
+    var jasmineHits = [];
+    var filteredCollection = collection.filter((x) => {
+        var hit =
+            x.toLowerCase().indexOf("jasmine") > -1 && x.toLowerCase().endsWith(".js");
+
+        if (hit) {
+            jasmineHits.push(x);
+        }
+
+        // Keep if does NOT contain jasmine (ie, most file).
+        return !hit;
+    });
+
+    if (jasmineHits.length) {
+        console.warn(`
+!!!!!! JASMINE POTENTIALLY FOUND !!!!!!
+${jasmineHits.join("\n")}
+
+We're ignoring any files that contains the characters "jasmine" and ends in ".js".
+khutzpa provides its own version of jasmine.  Referencing another version of jasmine can
+break tests. Currently skipping these file. (They may be listed multiple times.)
+
+Note: There is currently no way to override this check.
+TODO: Allow overriding this check.`);
+    }
+
+    return filteredCollection;
+}
+
 function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
     utils.debugLog({
         title: "handleChutzpahSelector",
@@ -70,7 +101,10 @@ function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
             selectorMatchesFullPaths =
                 fileSystemService.getAllFilePaths(selectorFullPath);
 
-            // 2. Run the file paths against include & exclude globs from config.
+            // 2. For now, over-aggressively remove jasmine files.
+            selectorMatchesFullPaths = filterJasmine(selectorMatchesFullPaths);
+
+            // 3. Run the file paths against include & exclude globs from config.
             utils.debugLog(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
 ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
@@ -93,9 +127,9 @@ ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
         } else {
-            selectorMatchesFullPaths = [
+            selectorMatchesFullPaths = filterJasmine([
                 nodePath.join(chutzpahJsonFileParent, selector.Path),
-            ];
+            ]);
         }
 
         return selectorMatchesFullPaths;

@@ -102,6 +102,10 @@ const createKarmaConfig = function (overrides) {
         //     "karma-trx-reporter",
         // ],
 
+        // jasmine: {
+        //     random: false,
+        // },
+
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
         frameworks: ["jasmine"],
