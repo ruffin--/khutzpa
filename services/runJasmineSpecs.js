@@ -68,29 +68,19 @@ function configInfoToTestRunnerScript(configInfo, root) {
     var forRunner = "<!-- include source files here -->\n";
 
     function insertToTemplate(filePath) {
-        if (filePath.indexOf("jasmine") > -1 && filePath.endsWith(".js")) {
-            console.warn(`
-!!!!!! ${filePath}
-contains the characters "jasmine". khutzpa provides its own version of jasmine.
-Referencing another version of jasmine can break tests. Currently skipping this file.
-Note: There is currently no way to override this check.
+        var templateNow = filePath.toLowerCase().endsWith(".css")
+            ? stylesheetTemplate
+            : scriptTemplate;
 
-TODO: Allow overriding this check.`);
-        } else {
-            var templateNow = filePath.toLowerCase().endsWith(".css")
-                ? stylesheetTemplate
-                : scriptTemplate;
-
-            forRunner +=
-                // This is kinda hacky. If there are more extensions we're worried about, refactor.
-                templateNow.replace(
-                    "1",
-                    // This is tacked on: If it's http, don't append a relative root.
-                    filePath.toLowerCase().startsWith("http")
-                        ? filePath
-                        : nodePath.relative(root, filePath)
-                );
-        }
+        forRunner +=
+            // This is kinda hacky. If there are more extensions we're worried about, refactor.
+            templateNow.replace(
+                "1",
+                // This is tacked on: If it's http, don't append a relative root.
+                filePath.toLowerCase().startsWith("http")
+                    ? filePath
+                    : nodePath.relative(root, filePath)
+            );
     }
 
     configInfo.allRefFilePaths.forEach(insertToTemplate);
