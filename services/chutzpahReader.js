@@ -105,7 +105,7 @@ function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
             selectorMatchesFullPaths = filterJasmine(selectorMatchesFullPaths);
 
             // 3. Run the file paths against include & exclude globs from config.
-            utils.debugLog(`all files for ${nth}th ${type} selector before filtering:
+            utils.log50(`all files for ${nth}th ${type} selector before filtering:
     ${selectorFullPath}
 ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
@@ -290,7 +290,8 @@ There are no tests to run.
         specFiles = [singleTestFile];
     }
 
-    return fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
+    specFiles = fileSystemService.filterNonexistentPaths(specFiles, "Test (spec files)");
+    return specFiles;
 }
 
 function getCoverageFiles(chutzpahConfigObj, allRefFilePaths, jsonFileParent) {
@@ -340,7 +341,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
     var specFiles = getSpecFiles(singleTestFile, chutzpahConfigObj, jsonFileParent);
 
     if (!specFiles.length) {
-        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests);
+        throw "No files to test! " + JSON.stringify(chutzpahConfigObj.Tests, null, "  ");
     }
 
     // REMOVE ANY SPEC FILES FOUND IN REFERENCES
