@@ -103,7 +103,8 @@ const createKarmaConfig = function (overrides) {
         // ],
 
         // jasmine: {
-        //     random: false,
+        //     random: true,
+        //     seed: 32725,
         // },
 
         // frameworks to use
