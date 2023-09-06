@@ -85,7 +85,7 @@ const createKarmaConfig = function (overrides) {
         overrides = overridesForCoverage;
     }
 
-    utils.debugLog("x:logLevel,5", overrides);
+    utils.logit("x:logLevel,5", overrides);
 
     var baseConfig = {
         // Remember that if any of your karma-* plugins are scoped or otherwise

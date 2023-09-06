@@ -63,7 +63,7 @@ TODO: Allow overriding this check.`);
 }
 
 function handleChutzpahSelector(selector, chutzpahJsonFileParent, type, nth) {
-    utils.debugLog({
+    utils.logit({
         title: "handleChutzpahSelector",
         selector,
         jsonFileParent: chutzpahJsonFileParent,
@@ -122,7 +122,7 @@ ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
                 chutzpahJsonFileParent
             );
 
-            utils.debugLog(`all files for ${nth}th ${type} selector after filtering:
+            utils.logit(`all files for ${nth}th ${type} selector after filtering:
     ${JSON.stringify(selectorMatchesFullPaths, null, "  ")}
 
 `);
@@ -365,7 +365,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
         coverageFiles,
     };
 
-    utils.debugLog("x:logLevel,5", toReturn);
+    utils.logit("x:logLevel,5", toReturn);
 
     return toReturn;
 }
@@ -381,7 +381,7 @@ function findChutzpahJson(startPath) {
 
     var foundChutzpahJson = undefined;
     while (!foundChutzpahJson) {
-        utils.debugLog("checking: " + possibleDir);
+        utils.logit("checking: " + possibleDir);
         var tryHere = nodePath.join(possibleDir, "Chutzpah.json");
         if (fs.existsSync(tryHere)) {
             foundChutzpahJson = tryHere;
@@ -391,7 +391,7 @@ function findChutzpahJson(startPath) {
                 throw `No Chutzpah.json file found in same dir or parent: ${startPath}`;
             }
             possibleDir = newPossibleDir;
-            // utils.debugLog("Next dir up: " + possibleDir);
+            // utils.logit("Next dir up: " + possibleDir);
         }
     }
 
@@ -439,10 +439,10 @@ function getConfigInfo(originalTestPath) {
 
     return fileSystemService.getFileContents(jsonFilePath).then(function (chutzpahJson) {
         var chutzpahConfigObj = JSON.parse(chutzpahJson);
-        utils.debugLog("read chutzpah json", chutzpahConfigObj);
+        utils.logit("read chutzpah json", chutzpahConfigObj);
 
         var info = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
-        utils.debugLog(info);
+        utils.logit(info);
 
         return {
             originalTestPath,
@@ -464,7 +464,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    utils.logit("myArgs: ", myArgs);
 
     fileSystemService.getFileContents("C:\\temp\\chutzpahTestValues.json").then(
         (testValueFileContents) => {
@@ -474,7 +474,7 @@ if (require.main === module) {
                 getConfigInfo(testConfigPath).then(
                     (values) => {
                         var valuesAsString = JSON.stringify(values, null, "  ");
-                        utils.debugLog(valuesAsString);
+                        utils.logit(valuesAsString);
                         fs.writeFileSync(
                             "C:\\temp\\parsedChutzpahValues.json",
                             valuesAsString

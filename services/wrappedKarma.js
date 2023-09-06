@@ -42,7 +42,7 @@ function startKarma(karmaRunId, overrides) {
                         function doneCallback(exitCode) {
                             // 0 is success/no test failure.
                             // Anything else is bad. Usually 1 afaict.
-                            utils.debugLog("Wrapped karma has exited with " + exitCode);
+                            utils.logit("Wrapped karma has exited with " + exitCode);
                             karmaRunResults[karmaRunId] = exitCode;
 
                             resolve(exitCode);
@@ -52,11 +52,11 @@ function startKarma(karmaRunId, overrides) {
                     });
 
                     server.start().then(function (x) {
-                        utils.debugLog("server started", x);
+                        utils.logit("server started", x);
                     });
                 },
                 (rejectReason) => {
-                    utils.debugLog("Error", rejectReason);
+                    utils.logit("Error", rejectReason);
                     throw rejectReason;
                 }
             );
@@ -150,7 +150,7 @@ function runWrappedKarma(configInfo, karmaRunId) {
         }
     }
 
-    utils.debugLog("config overrides for karma:", overrides);
+    utils.logit("config overrides for karma:", overrides);
     return startKarma(karmaRunId, overrides);
 }
 
@@ -158,7 +158,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    utils.logit("myArgs: ", myArgs);
 
     var karmaRunId = "unique value";
     karmaRunIds.push(karmaRunId);
@@ -185,7 +185,7 @@ if (require.main === module) {
     };
 
     runWrappedKarma(configResult, karmaRunId).then(function (exitCode) {
-        utils.debugLog("done (Promises probably outstanding)", exitCode);
+        utils.logit("done (Promises probably outstanding)", exitCode);
     });
 }
 

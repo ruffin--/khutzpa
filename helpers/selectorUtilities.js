@@ -77,13 +77,13 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
 
 var findAllIncludes = function (selector, fullPaths, home) {
     normalizeIncludeVsIncludes(selector);
-    utils.debugLog("includes", selector.Includes);
+    utils.logit("includes", selector.Includes);
     return minimatchEngine(selector, fullPaths, home, "Includes");
 };
 
 var removeAllExcludes = function (selector, fullPaths, home) {
     normalizeExcludeVsExcludes(selector);
-    utils.debugLog("Excludes", selector.Excludes);
+    utils.logit("Excludes", selector.Excludes);
 
     var excludes = minimatchEngine(selector, fullPaths, home, "Excludes");
     return fullPaths.filter((includePath) => excludes.indexOf(includePath) === -1);

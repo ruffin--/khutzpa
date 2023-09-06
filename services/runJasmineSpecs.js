@@ -39,7 +39,7 @@ function createSpecHtml(configInfo, writeToFile, root) {
 
     if (writeToFile) {
         var runnerPath = nodePath.join(root, "runner.html");
-        utils.debugLog(`${htmlContents}
+        utils.logit(`${htmlContents}
 
 #############
 writing to
@@ -99,7 +99,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    utils.logit("myArgs: ", myArgs);
 
     fileSystemService.getFileContents("C:\\temp\\chutzpahTestValues.json").then(
         (testValueFileContents) => {
@@ -109,7 +109,7 @@ if (require.main === module) {
                 chutzpahReader.getConfigInfo(testConfigPath).then(
                     (values) => {
                         createSpecHtml(values, !"don't write to a file").then((html) => {
-                            utils.debugLog(html.runnerHtml);
+                            utils.logit(html.runnerHtml);
                         });
                     },
                     (err) => console.error("2", err)

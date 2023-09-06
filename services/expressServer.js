@@ -23,13 +23,13 @@ function startRunner(homeDirPath, runnerSource) {
                     "lib",
                     "jasmine-4.1.1"
                 );
-                // utils.debugLog(root);
+                // utils.logit(root);
                 return root;
             })()
         )
     );
 
-    utils.debugLog("Express home dir: " + homeDirPath);
+    utils.logit("Express home dir: " + homeDirPath);
     app.use("/", express.static(homeDirPath));
 
     return app;

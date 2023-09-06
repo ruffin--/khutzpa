@@ -5,6 +5,9 @@ const settingsCue = "x:";
 
 let areDebugging = false;
 let logLevel = 50;
+
+// TODO: Probably should nix the logLevel stuff. Just verbose or no.
+let verboseLogging = false;
 let logAllToFile = false;
 
 function csvToLiteral(csv) {
@@ -56,16 +59,22 @@ function isParseable(jsonString) {
     return false;
 }
 
+function debugLog() {
+    if (verboseLogging) {
+        alwaysLog(...arguments);
+    }
+}
+
 // yes, we lose the settings hack here.
 function alwaysLog() {
-    debugLog(`${settingsCue}alwaysLog`, ...arguments);
+    logit(`${settingsCue}alwaysLog`, ...arguments);
 }
 
 function log50() {
-    debugLog(`${settingsCue}logLevel,50`, ...arguments);
+    logit(`${settingsCue}logLevel,50`, ...arguments);
 }
 
-function debugLog() {
+function logit() {
     var args = [].slice.call(arguments);
     // eslint-disable-next-line
     var settings = logAllToFile
@@ -130,12 +139,13 @@ function mcDebugger() {
 }
 
 module.exports = {
-    debugLog,
-    log50,
     alwaysLog,
-    mcDebugger,
-    isParseable,
     areDebugging,
-    logLevel,
+    debugLog,
+    isParseable,
+    log50,
     logAllToFile,
+    logIt: logit,
+    logLevel,
+    mcDebugger,
 };

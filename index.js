@@ -44,7 +44,14 @@ khutzpa /path/to/root/directory /{command}
     process.exit(846); // "bad"
 }
 
-function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
+// Note that for some actionTypes we'll do a walk to find all the configs
+// first, but the default, eg, is to take the startingFilePath and look for
+// the [single] closest Chutzpah.json file with no QA in this method for
+// that selection.
+// Note that this method DOES call chutzpahConfigReader.getConfigInfo to
+// get contents for each config [whether they're from a walk or are the closest
+// to the file given].
+function runCommandAsync(startingFilePath, expressPort, actionType, args) {
     var fnAction = () => {
         console.error("no action given: " + actionType);
     };
@@ -59,7 +66,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
 
     switch (actionType) {
         case actionTypes.OPEN_IN_BROWSER:
-            utils.debugLog("open in browser");
+            utils.logit("open in browser");
 
             fnAction = function (configInfo) {
                 var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
@@ -72,9 +79,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
                         var serverApp = server.startRunner(root, results.runnerHtml);
 
                         serverApp.listen(expressPort, function () {
-                            utils.debugLog(
-                                `Example app listening on port ${expressPort}!`
-                            );
+                            utils.logit(`Example app listening on port ${expressPort}!`);
                         });
 
                         var runnerUrl = `http://localhost:${expressPort}/runner?random=false`;
@@ -92,7 +97,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
             break;
 
         case actionTypes.WITH_COVERAGE:
-            utils.debugLog("coverage");
+            utils.logit("coverage");
 
             var outFile;
             var indexOfPath = args.indexOf("/coveragehtml");
@@ -107,28 +112,28 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
             break;
 
         case actionTypes.RUN_ALL_CHUTZPAHS:
-            utils.debugLog("run all the chutzpahs");
+            utils.logit("run all the chutzpahs");
 
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
         case actionTypes.FIND_ALL_CHUTZPAHS:
-            utils.debugLog("FIND all the chutzpahs but don't run them");
+            utils.logit("FIND all the chutzpahs but don't run them");
             staticPayload = chutzpahWalk.walk(startingFilePath);
             runEachPromise = false;
             break;
 
-        case actionTypes.RUN_ONE_IN_KARMA:
+        case actionTypes.DEFAULT_RUN_ONE_IN_KARMA:
             // note that this (and other walk-less actions) uses
             // chutzpahConfigLocs = [startingFilePath];
             // instead of the results of a walk.
-            utils.debugLog("Run one in karma");
+            utils.logit("Run one in karma");
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
         case actionTypes.WALK_ALL_RUN_ONE:
-            utils.debugLog("walk all run one");
+            utils.logit("walk all run one");
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
 
             if (chutzpahConfigLocs.length) {
@@ -142,7 +147,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
                     whichIndex > -1 &&
                     whichIndex < chutzpahConfigLocs.length
                 ) {
-                    utils.debugLog("Running config index: " + whichIndex);
+                    utils.logit("Running config index: " + whichIndex);
                     chutzpahConfigLocs = [chutzpahConfigLocs[whichIndex]];
                     fnAction = wrappedKarma.runWrappedKarma;
                 } else {
@@ -159,7 +164,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
             fnAction = printUsage;
     }
 
-    utils.debugLog("fnAction is set");
+    utils.logit("fnAction is set");
     if (runEachPromise) {
         return Promise.all(
             chutzpahConfigLocs.map(function (chutzpahSearchStart) {
@@ -189,7 +194,7 @@ var actionTypes = {
     FIND_ALL_CHUTZPAHS: 4,
     WALK_ALL_RUN_ONE: 5,
     PRINT_USAGE: 6,
-    RUN_ONE_IN_KARMA: 7, // the default
+    DEFAULT_RUN_ONE_IN_KARMA: 7,
 };
 
 if (require.main === module) {
@@ -197,7 +202,7 @@ if (require.main === module) {
         // First two arguments for a node process are always "Node"
         // and the path to this app. Trash those.
         const myArgs = process.argv.slice(2);
-        utils.debugLog("myArgs: ", myArgs);
+        utils.logit("myArgs: ", myArgs);
 
         if (myArgs.indexOf("/version") > -1) {
             return console.log(packageInfo.version);
@@ -220,15 +225,15 @@ if (require.main === module) {
                     ? actionTypes.WALK_ALL_RUN_ONE
                     : myArgs.indexOf("/version") > -1
                     ? actionTypes.PRINT_USAGE
-                    : actionTypes.RUN_ONE_IN_KARMA;
+                    : actionTypes.DEFAULT_RUN_ONE_IN_KARMA;
 
-            utils.debugLog(command);
+            utils.logit(command);
 
             var expressPort = 3000;
-            cmdCallHandler(filePath, expressPort, command, myArgs).then(function (
+            runCommandAsync(filePath, expressPort, command, myArgs).then(function (
                 resultsIfAny
             ) {
-                utils.debugLog("done");
+                utils.logit("done");
 
                 if (
                     Array.isArray(resultsIfAny) &&
@@ -252,4 +257,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = cmdCallHandler;
+module.exports = runCommandAsync;

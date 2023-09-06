@@ -34,7 +34,7 @@ function copyCoverageFiles(coverageDir, newIndexLoc) {
 function startKarmaCoverageRun(overrides, outFile) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
     var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
-    utils.debugLog(karmaConfig);
+    utils.logit(karmaConfig);
 
     return new Promise(function (resolve, reject) {
         karma.config
@@ -55,14 +55,14 @@ function startKarmaCoverageRun(overrides, outFile) {
                     const server = new Server(parsedKarmaConfig, function doneCallback(
                         exitCode
                     ) {
-                        utils.debugLog("Karma has exited with " + exitCode);
-                        utils.debugLog(arguments);
+                        utils.logit("Karma has exited with " + exitCode);
+                        utils.logit(arguments);
 
                         var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
                         fs.readdir(coverageDir, function (err, list) {
                             var latestCoverageDir = "";
                             var latestTime = 0;
-                            utils.debugLog(list, err);
+                            utils.logit(list, err);
 
                             list.forEach((file) => {
                                 // TODO: Change when we have other browsers, natch.
@@ -70,7 +70,7 @@ function startKarmaCoverageRun(overrides, outFile) {
                                     var fullPath = nodePath.join(coverageDir, file);
                                     var statsObj = fs.statSync(fullPath);
                                     if (statsObj.isDirectory()) {
-                                        utils.debugLog(`
+                                        utils.logit(`
 path: ${fullPath}
 last accessed: ${statsObj.atimeMs},
 last changed:  ${statsObj.ctimeMs},
@@ -86,7 +86,7 @@ last modified: ${statsObj.mtimeMs},
                             });
 
                             if (latestCoverageDir) {
-                                utils.debugLog(latestCoverageDir);
+                                utils.logit(latestCoverageDir);
 
                                 if (outFile) {
                                     copyCoverageFiles(latestCoverageDir, outFile);
@@ -170,7 +170,7 @@ function runKarmaCoverage(configInfo, outFile) {
         };
     }
 
-    utils.debugLog("config overrides for karma:", overrides);
+    utils.logit("config overrides for karma:", overrides);
 
     return startKarmaCoverageRun(overrides, outFile);
 }

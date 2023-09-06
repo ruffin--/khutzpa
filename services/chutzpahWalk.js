@@ -34,7 +34,7 @@ if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    utils.logit("myArgs: ", myArgs);
 
     fileSystemService
         .getFileContents("C:\\temp\\chutzpahTestValues.json")
@@ -45,11 +45,9 @@ if (require.main === module) {
                 if (!chutzpahTestValues.chutzpahWalkStart) {
                     console.warn("Invalid chutzpahWalkStart path");
                 } else {
-                    utils.debugLog(
-                        "Starting at: " + chutzpahTestValues.chutzpahWalkStart
-                    );
+                    utils.logit("Starting at: " + chutzpahTestValues.chutzpahWalkStart);
                     var results = chutzpahWalk(chutzpahTestValues.chutzpahWalkStart);
-                    utils.debugLog("x:asjson,tofile", results);
+                    utils.logit("x:asjson,tofile", results);
                 }
             } catch (e) {
                 console.error(
