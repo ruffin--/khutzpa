@@ -145,7 +145,7 @@ module.exports = {
     isParseable,
     log50,
     logAllToFile,
-    logIt: logit,
+    logit,
     logLevel,
     mcDebugger,
 };

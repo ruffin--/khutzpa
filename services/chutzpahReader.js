@@ -365,7 +365,7 @@ function parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile) {
         coverageFiles,
     };
 
-    utils.logit("x:logLevel,5", toReturn);
+    utils.debugLog("parseChutzpahInfo results", toReturn);
 
     return toReturn;
 }
@@ -408,15 +408,7 @@ function findChutzpahJson(startPath) {
 //      * allRefFilePaths,
 //      * specFiles,
 //      * coverageFiles,
-// 4. Return object with info from 3. plus some initialization info
-//      return {
-//          originalTestPath,
-//          configFilePath,
-//          jsonFileParent,
-//          allRefFilePaths: info.allRefFilePaths,
-//          specFiles: info.specFiles,
-//          coverageFiles: info.coverageFiles,
-//      };
+// 4. Return object with info from 3. plus some initialization info & khutzpa-specific settings
 // ===============================================================================================
 function getConfigInfo(originalTestPath) {
     var configFilePath = findChutzpahJson(originalTestPath);
@@ -428,6 +420,7 @@ function getConfigInfo(originalTestPath) {
     configFilePath = nodePath.resolve(configFilePath);
 
     console.log("Reading Chutzpah config: " + configFilePath);
+
     var jsonFilePath = nodePath.normalize(configFilePath);
     var jsonFileParent = nodePath.dirname(jsonFilePath);
 
@@ -437,26 +430,49 @@ function getConfigInfo(originalTestPath) {
             ? originalTestPath
             : false;
 
+    // #################################################################
+    // NOTE: Here's where we read the Chutzpah.json and JSON.parse it.
+    // #################################################################
     return fileSystemService.getFileContents(jsonFilePath).then(function (chutzpahJson) {
-        var chutzpahConfigObj = JSON.parse(chutzpahJson);
-        utils.logit("read chutzpah json", chutzpahConfigObj);
+        var objFromChutzpahJson = JSON.parse(chutzpahJson);
+        if (objFromChutzpahJson.verbose) {
+            utils.areDebugging = true;
+        }
 
-        var info = parseChutzpahInfo(chutzpahConfigObj, jsonFileParent, singleTestFile);
-        utils.logit(info);
+        utils.debugLog("have read chutzpah json", objFromChutzpahJson);
+        var fileNamesFromDirWalks = parseChutzpahInfo(
+            objFromChutzpahJson,
+            jsonFileParent,
+            singleTestFile
+        );
+        utils.debugLog("chutzpah info from parseChutzpahInfo", fileNamesFromDirWalks);
 
-        return {
+        var theKhutzpaConfig = {
             originalTestPath,
             configFilePath,
             jsonFileParent,
             singleTestFile,
-            allRefFilePaths: info.allRefFilePaths,
-            specFiles: info.specFiles,
-            coverageFiles: info.coverageFiles,
+
+            // all file names from directory walks
+            allRefFilePaths: fileNamesFromDirWalks.allRefFilePaths,
+            specFiles: fileNamesFromDirWalks.specFiles,
+            coverageFiles: fileNamesFromDirWalks.coverageFiles,
+
+            // things we'll carry into khutzpa essentially unmodified from Chutzpah.json
             codeCoverageSuccessPercentage:
-                chutzpahConfigObj.CodeCoverageSuccessPercentage,
-            produceTrx: chutzpahConfigObj.ProduceTrx,
-            trxPath: chutzpahConfigObj.TrxPath,
+                objFromChutzpahJson.CodeCoverageSuccessPercentage,
+            produceTrx: objFromChutzpahJson.ProduceTrx,
+            trxPath: objFromChutzpahJson.TrxPath,
+            seed: parseInt(objFromChutzpahJson.seed, 10),
+            random:
+                parseInt(objFromChutzpahJson.seed, 10) !== NaN
+                    ? true
+                    : objFromChutzpahJson.random,
         };
+
+        utils.debugLog("the khutzpa config:", theKhutzpaConfig);
+
+        return theKhutzpaConfig;
     });
 }
 

@@ -164,7 +164,8 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
             fnAction = printUsage;
     }
 
-    utils.logit("fnAction is set");
+    utils.debugLog("fnAction is set");
+
     if (runEachPromise) {
         return Promise.all(
             chutzpahConfigLocs.map(function (chutzpahSearchStart) {
