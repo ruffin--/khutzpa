@@ -68,13 +68,15 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
         case actionTypes.OPEN_IN_BROWSER:
             utils.logit("open in browser");
 
-            fnAction = function (configInfo) {
-                var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+            fnAction = function (khutzpaConfigInfo) {
+                var allFiles = khutzpaConfigInfo.allRefFilePaths.concat(
+                    khutzpaConfigInfo.specFiles
+                );
                 var root = findTheRoot(
                     allFiles.filter((x) => !x.toLowerCase().startsWith("http"))
                 );
 
-                return specRunner.createSpecHtml(configInfo, false, root).then(
+                return specRunner.createSpecHtml(khutzpaConfigInfo, false, root).then(
                     (results) => {
                         var serverApp = server.startRunner(root, results.runnerHtml);
 
@@ -82,7 +84,12 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
                             utils.logit(`Example app listening on port ${expressPort}!`);
                         });
 
-                        var runnerUrl = `http://localhost:${expressPort}/runner?random=false`;
+                        var parsedSeed = parseInt(khutzpaConfigInfo.seed, 10);
+                        var querystring = isNaN(parsedSeed)
+                            ? `random=${!!khutzpaConfigInfo.random}`
+                            : `random=true&seed=${parsedSeed}`;
+
+                        var runnerUrl = `http://localhost:${expressPort}/runner?${querystring}`;
                         urlOpener.openUrl(runnerUrl);
 
                         // this prevents the process.exit call.
