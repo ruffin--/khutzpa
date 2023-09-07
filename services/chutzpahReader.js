@@ -436,7 +436,7 @@ function getConfigInfo(originalTestPath) {
     return fileSystemService.getFileContents(jsonFilePath).then(function (chutzpahJson) {
         var objFromChutzpahJson = JSON.parse(chutzpahJson);
         if (objFromChutzpahJson.verbose) {
-            utils.areDebugging = true;
+            utils.setVerboseLogging(true);
         }
 
         utils.debugLog("have read chutzpah json", objFromChutzpahJson);
@@ -447,6 +447,7 @@ function getConfigInfo(originalTestPath) {
         );
         utils.debugLog("chutzpah info from parseChutzpahInfo", fileNamesFromDirWalks);
 
+        var parsedSeed = parseInt(objFromChutzpahJson.seed, 10);
         var theKhutzpaConfig = {
             originalTestPath,
             configFilePath,
@@ -463,12 +464,13 @@ function getConfigInfo(originalTestPath) {
                 objFromChutzpahJson.CodeCoverageSuccessPercentage,
             produceTrx: objFromChutzpahJson.ProduceTrx,
             trxPath: objFromChutzpahJson.TrxPath,
-            seed: parseInt(objFromChutzpahJson.seed, 10),
-            random:
-                parseInt(objFromChutzpahJson.seed, 10) !== NaN
-                    ? true
-                    : objFromChutzpahJson.random,
+            seed: parsedSeed,
+            random: !isNaN(parsedSeed) ? true : objFromChutzpahJson.random,
         };
+
+        if (!isNaN(parsedSeed)) {
+            console.log(`@@@@ Using random with specific seed: ${parsedSeed}`);
+        }
 
         utils.debugLog("the khutzpa config:", theKhutzpaConfig);
 
