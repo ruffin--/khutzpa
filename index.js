@@ -104,7 +104,7 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
             break;
 
         case actionTypes.WITH_COVERAGE:
-            utils.logit("coverage");
+            utils.debugLog("coverage");
 
             var outFile;
             var indexOfPath = args.indexOf("/coveragehtml");
@@ -119,14 +119,14 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
             break;
 
         case actionTypes.RUN_ALL_CHUTZPAHS:
-            utils.logit("run all the chutzpahs");
+            utils.debugLog("run all the chutzpahs");
 
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
         case actionTypes.FIND_ALL_CHUTZPAHS:
-            utils.logit("FIND all the chutzpahs but don't run them");
+            utils.debugLog("FIND all the chutzpahs but don't run them");
             staticPayload = chutzpahWalk.walk(startingFilePath);
             runEachPromise = false;
             break;
@@ -135,12 +135,12 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
             // note that this (and other walk-less actions) uses
             // chutzpahConfigLocs = [startingFilePath];
             // instead of the results of a walk.
-            utils.logit("Run one in karma");
+            utils.debugLog("Run one in karma");
             fnAction = wrappedKarma.runWrappedKarma;
             break;
 
         case actionTypes.WALK_ALL_RUN_ONE:
-            utils.logit("walk all run one");
+            utils.debugLog("walk all run one");
             chutzpahConfigLocs = chutzpahWalk.walk(startingFilePath);
 
             if (chutzpahConfigLocs.length) {
@@ -154,7 +154,7 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
                     whichIndex > -1 &&
                     whichIndex < chutzpahConfigLocs.length
                 ) {
-                    utils.logit("Running config index: " + whichIndex);
+                    utils.debugLog("Running config index: " + whichIndex);
                     chutzpahConfigLocs = [chutzpahConfigLocs[whichIndex]];
                     fnAction = wrappedKarma.runWrappedKarma;
                 } else {
@@ -241,7 +241,7 @@ if (require.main === module) {
             runCommandAsync(filePath, expressPort, command, myArgs).then(function (
                 resultsIfAny
             ) {
-                utils.logit("done");
+                utils.debugLog("done");
 
                 if (
                     Array.isArray(resultsIfAny) &&
