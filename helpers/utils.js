@@ -6,9 +6,10 @@ const settingsCue = "x:";
 let areDebugging = false;
 let logLevel = 50;
 
+let logAllToFile = false;
+
 // TODO: Probably should nix the logLevel stuff. Just verbose or no.
 let verboseLogging = false;
-let logAllToFile = false;
 
 function csvToLiteral(csv) {
     // we're not escaping commas for now.
@@ -31,6 +32,10 @@ function csvToLiteral(csv) {
     });
 
     return literal;
+}
+
+function setVerboseLogging(value) {
+    verboseLogging = value;
 }
 
 // https://stackoverflow.com/a/20392392/1028230
@@ -148,4 +153,6 @@ module.exports = {
     logit,
     logLevel,
     mcDebugger,
+
+    setVerboseLogging,
 };
