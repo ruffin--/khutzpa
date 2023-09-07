@@ -11,7 +11,7 @@ function openUrl(url) {
 
     const openerCmd =
         os.platform() === "win32"
-            ? `rundll32 url.dll,FileProtocolHandler ${url}`
+            ? `rundll32 url.dll,FileProtocolHandler "${url}"`
             : `open "${url}"`;
 
     execSync(openerCmd, {
