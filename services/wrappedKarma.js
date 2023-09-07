@@ -13,6 +13,25 @@ const winDrivePattern = new RegExp(/^[a-z]:\\/, "i");
 let karmaRunIds = [];
 let karmaRunResults = {};
 
+function addIfNotExists(array, newElements) {
+    // Should probably clone `array` and call it "mergeArrays" or something
+    if (!Array.isArray(array)) {
+        array = [];
+    }
+
+    if (!Array.isArray(newElements)) {
+        newElements = [newElements];
+    }
+
+    newElements.forEach((x) => {
+        if (array.indexOf(x) === -1) {
+            array.push(x);
+        }
+    });
+
+    return array;
+}
+
 function startKarmaAsync(karmaRunId, overrides) {
     return new Promise(function (resolve, reject) {
         overrides = Object.assign(
@@ -114,8 +133,8 @@ function runWrappedKarma(khutzpaConfigInfo, karmaRunId) {
     if (khutzpaConfigInfo.singleTestFile) {
         overrides.reporters = ["mocha"];
     } else {
-        // this is actually the default, but let's be explicit.
-        overrides.reports = ["coverage", "mocha"];
+        // this is actually the default in karmaConfigTools, but let's be explicit.
+        overrides.reporters = ["coverage", "mocha"];
 
         var codeCoverageSuccessPercentage = parseInt(
             khutzpaConfigInfo.codeCoverageSuccessPercentage,
@@ -147,11 +166,9 @@ function runWrappedKarma(khutzpaConfigInfo, karmaRunId) {
     // (by prop name) arrays?
     // This overrides where you're really setting something is getting wack.
     if (khutzpaConfigInfo.produceTrx) {
-        overrides.reporters = ["mocha", "trx"];
-
-        if (!khutzpaConfigInfo.singleTestFile) {
-            overrides.reporters.push("coverage");
-        }
+        // It's already got mocha in it as of 20230906, but let's pretend that might change
+        // and be defensive.
+        overrides.reporters = addIfNotExists(overrides.reporters, ["mocha", "trx"]);
 
         let trxPath = khutzpaConfigInfo.trxPath || "khutzpa-test-results.trx";
 
