@@ -2,6 +2,7 @@
 
 const prompt = require("prompt-sync")({ sigint: true });
 const fs = require("fs");
+const portscanner = require("portscanner");
 
 const chutzpahConfigReader = require("./services/chutzpahReader");
 const specRunner = require("./services/runJasmineSpecs");
@@ -44,6 +45,18 @@ khutzpa /path/to/root/directory /{command}
     process.exit(846); // "bad"
 }
 
+function findPortNotInUseAsync() {
+    return new Promise((resolve, reject) => {
+        portscanner.findAPortNotInUse(3000, 3100, "127.0.0.1", function (error, port) {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(port);
+            }
+        });
+    });
+}
+
 // Note that for some actionTypes we'll do a walk to find all the configs
 // first, but the default, eg, is to take the startingFilePath and look for
 // the [single] closest Chutzpah.json file with no QA in this method for
@@ -51,7 +64,7 @@ khutzpa /path/to/root/directory /{command}
 // Note that this method DOES call chutzpahConfigReader.getConfigInfo to
 // get contents for each config [whether they're from a walk or are the closest
 // to the file given].
-function runCommandAsync(startingFilePath, expressPort, actionType, args) {
+function runCommandAsync(startingFilePath, actionType, args) {
     var fnAction = () => {
         console.error("no action given: " + actionType);
     };
@@ -76,28 +89,43 @@ function runCommandAsync(startingFilePath, expressPort, actionType, args) {
                     allFiles.filter((x) => !x.toLowerCase().startsWith("http"))
                 );
 
-                return specRunner.createSpecHtml(khutzpaConfigInfo, false, root).then(
-                    (results) => {
-                        var serverApp = server.startRunner(root, results.runnerHtml);
+                return findPortNotInUseAsync().then(
+                    (expressPort) => {
+                        return specRunner
+                            .createSpecHtml(khutzpaConfigInfo, false, root)
+                            .then(
+                                (results) => {
+                                    var serverApp = server.startRunner(
+                                        root,
+                                        results.runnerHtml
+                                    );
 
-                        serverApp.listen(expressPort, function () {
-                            utils.logit(`Example app listening on port ${expressPort}!`);
-                        });
+                                    serverApp.listen(expressPort, function () {
+                                        utils.logit(
+                                            `Example app listening on port ${expressPort}!`
+                                        );
+                                    });
 
-                        var parsedSeed = parseInt(khutzpaConfigInfo.seed, 10);
-                        var querystring = isNaN(parsedSeed)
-                            ? `random=${!!khutzpaConfigInfo.random}`
-                            : `random=true&seed=${parsedSeed}`;
+                                    var parsedSeed = parseInt(khutzpaConfigInfo.seed, 10);
+                                    var querystring = isNaN(parsedSeed)
+                                        ? `random=${!!khutzpaConfigInfo.random}`
+                                        : `random=true&seed=${parsedSeed}`;
 
-                        var runnerUrl = `http://localhost:${expressPort}/runner?${querystring}`;
-                        urlOpener.openUrl(runnerUrl);
+                                    var runnerUrl = `http://localhost:${expressPort}/runner?${querystring}`;
+                                    urlOpener.openUrl(runnerUrl);
 
-                        // this prevents the process.exit call.
-                        // TODO: This is an ugly hack. Do better.
-                        return undefined;
+                                    // this prevents the process.exit call.
+                                    // TODO: This is an ugly hack. Do better.
+                                    return undefined;
+                                },
+                                function (err) {
+                                    console.error(err);
+                                }
+                            );
                     },
-                    function (err) {
-                        console.error(err);
+                    (error) => {
+                        console.error("Unable to find an open port", error);
+                        throw "Unable to find an open port";
                     }
                 );
             };
@@ -237,10 +265,7 @@ if (require.main === module) {
 
             utils.logit(command);
 
-            var expressPort = 3000;
-            runCommandAsync(filePath, expressPort, command, myArgs).then(function (
-                resultsIfAny
-            ) {
+            runCommandAsync(filePath, command, myArgs).then(function (resultsIfAny) {
                 utils.debugLog("done");
 
                 if (
