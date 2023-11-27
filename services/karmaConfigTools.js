@@ -54,7 +54,9 @@ const overridesForCoverage = {
     // },
     // The default subdir value is kinda chatty, eg.
     // ./homeDir/coverage/Chrome 118.0.0.0 (Mac OS 10.15.7)/index.html
-    // The below would send them to: ./homeDir/coverage/Chrome/index.html
+    //
+    // This new default, below, sends them to the less chatty...
+    // ./homeDir/coverage/Chrome/index.html
     coverageReporter: {
         dir: "coverage",
         subdir: "Chrome", // See coverage.js' startKarmaCoverageRun for notes on when we support more browsers

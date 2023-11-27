@@ -106,6 +106,9 @@ function runCommandAsync(startingFilePath, actionType, args) {
                                         );
                                     });
 
+                                    // Yes, strangely random has to be true to use a specific seed value
+                                    // (making the order, um, random in a specific way? Using a specific
+                                    // "random" seed? It's weird).
                                     var parsedSeed = parseInt(khutzpaConfigInfo.seed, 10);
                                     var querystring = isNaN(parsedSeed)
                                         ? `random=${!!khutzpaConfigInfo.random}`

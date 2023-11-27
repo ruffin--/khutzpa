@@ -84,8 +84,9 @@ function startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage
                             list.forEach((file) => {
                                 // TODO: Keep in mind that subdir can be configured by a function.
                                 // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#subdir
-                                // NOTE: coverageSubDir value can be anywhere... so the default "Chrome" does match
-                                // wacky defaults like "Chrome 118.0.0.0 (Mac OS 10.15.7)" -- TODO: as long as we used Chrome.
+                                // NOTE: coverageSubDir value can be anywhere in file... which allows the default "Chrome" to match
+                                // the wacky default folder name construction like "Chrome 118.0.0.0 (Mac OS 10.15.7)"
+                                // -- TODO: ^^^^ as long as we only use Chrome.
                                 if (file.indexOf(coverageSubDir) > -1) {
                                     var fullPath = nodePath.join(coverageDir, file);
                                     var statsObj = fs.statSync(fullPath);

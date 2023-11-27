@@ -88,7 +88,7 @@ function startKarmaAsync(karmaRunId, overrides) {
     });
 }
 
-// The puts together overrides for the karma run, but doesn't actually call it.
+// This puts together overrides for the karma run, but doesn't actually call it.
 // It sends those overrides over by calling startKarmaAsync.
 function runWrappedKarma(khutzpaConfigInfo, karmaRunId) {
     // The config object gives back a collection of all refs (ie, required
