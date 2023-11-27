@@ -50,15 +50,14 @@ const overridesForCoverage = {
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
     // coverageReporter: {
-    //     reporters: [
-    //         { type: "text-summary" },
-    //         { type: "html", dir: "./coverage/", subdir: "Chrome", file: "index.html" },
-    //     ],
+    //     reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
     // },
+    // The default subdir value is kinda chatty, eg.
+    // ./homeDir/coverage/Chrome 118.0.0.0 (Mac OS 10.15.7)/index.html
+    // The below would send them to: ./homeDir/coverage/Chrome/index.html
     coverageReporter: {
         dir: "coverage",
-        subdir: "report",
-        // Would output the results into: .'/coverage/report/'
+        subdir: "Chrome", // See coverage.js' startKarmaCoverageRun for notes on when we support more browsers
     },
 };
 
@@ -83,17 +82,12 @@ const overridesForMochaTestingRun = {
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
-    // coverageReporter: {
-    //     reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
-    // },
     coverageReporter: {
-        dir: "coverage",
-        subdir: "report",
-        // Would output the results into: .'/coverage/report/'
+        reporters: [{ type: "text-summary" }],
     },
 };
 
-const createKarmaConfig = function (overrides) {
+const createKarmaConfig = function (overrides, codeCoverageSuccessPercentage) {
     if (!overrides) {
         overrides = overridesForCoverage;
     }
@@ -174,6 +168,54 @@ const createKarmaConfig = function (overrides) {
             terminal: true,
         },
     };
+
+    //===========================================
+    //#region codeCoverage hack
+    //===========================================
+    // Object.assign really isn't granular enough for what we want to do here.
+    // TODO: Write an object spider that'll merge more elegantly.
+    // Until then, we'll stodgily check codeCoverageSuccessPercentage and handle as a one-off.
+    if (
+        codeCoverageSuccessPercentage &&
+        !(overrides.coverageReporter && overrides.coverageReporter.check)
+    ) {
+        var coverageOverrideValues = {
+            emitWarning: false,
+            global: {
+                statements: codeCoverageSuccessPercentage,
+                branches: codeCoverageSuccessPercentage,
+                functions: codeCoverageSuccessPercentage,
+                lines: codeCoverageSuccessPercentage,
+            },
+        };
+
+        // What does check do? \/\/\/
+        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
+        if (overrides.coverageReporter) {
+            // We might want to check for global, etc, but see TODO, above. We're merge objects
+            // better later.
+            overrides.coverageReporter.check = coverageOverrideValues;
+        } else {
+            overrides.coverageReporter = {
+                reporters: [
+                    { type: "text-summary" },
+                    { type: "html", dir: "./coverage/" },
+                ],
+                check: {
+                    emitWarning: false,
+                    global: {
+                        statements: codeCoverageSuccessPercentage,
+                        branches: codeCoverageSuccessPercentage,
+                        functions: codeCoverageSuccessPercentage,
+                        lines: codeCoverageSuccessPercentage,
+                    },
+                },
+            };
+        }
+    }
+    //===========================================
+    //#endregion codeCoverage hack
+    //===========================================
 
     return Object.assign({}, baseConfig, overrides);
 };

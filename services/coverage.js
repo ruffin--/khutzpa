@@ -31,9 +31,12 @@ function copyCoverageFiles(coverageDir, newIndexLoc) {
     fs.copyFileSync(oldIndexLoc, newIndexLoc);
 }
 
-function startKarmaCoverageRun(overrides, outFile) {
+function startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
-    var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
+    var karmaConfig = karmaConfigTools.createKarmaConfig(
+        overrides,
+        codeCoverageSuccessPercentage
+    );
     utils.logit(karmaConfig);
 
     return new Promise(function (resolve, reject) {
@@ -58,15 +61,32 @@ function startKarmaCoverageRun(overrides, outFile) {
                         utils.logit("Karma has exited with " + exitCode);
                         utils.logit(arguments);
 
-                        var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
+                        var coverageDirName = "coverage";
+                        // TODO: This is a dangerous default once we support other browsers.
+                        var coverageSubDir = "Chrome";
+                        if (parsedKarmaConfig && parsedKarmaConfig.coverageReporter) {
+                            coverageDirName =
+                                parsedKarmaConfig.coverageReporter.dir || coverageDir;
+                            coverageSubDir =
+                                parsedKarmaConfig.coverageReporter.subdir ||
+                                coverageSubDir;
+                        }
+
+                        var coverageDir = nodePath.join(
+                            karmaConfig.basePath,
+                            coverageDirName
+                        );
                         fs.readdir(coverageDir, function (err, list) {
                             var latestCoverageDir = "";
                             var latestTime = 0;
                             utils.logit(list, err);
 
                             list.forEach((file) => {
-                                // TODO: Change when we have other browsers, natch.
-                                if (file.indexOf("Chrome") > -1) {
+                                // TODO: Keep in mind that subdir can be configured by a function.
+                                // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#subdir
+                                // NOTE: coverageSubDir value can be anywhere... so the default "Chrome" does match
+                                // wacky defaults like "Chrome 118.0.0.0 (Mac OS 10.15.7)" -- TODO: as long as we used Chrome.
+                                if (file.indexOf(coverageSubDir) > -1) {
                                     var fullPath = nodePath.join(coverageDir, file);
                                     var statsObj = fs.statSync(fullPath);
                                     if (statsObj.isDirectory()) {
@@ -154,25 +174,13 @@ function runKarmaCoverage(configInfo, outFile) {
         10
     );
 
-    if (codeCoverageSuccessPercentage) {
-        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
-        overrides.coverageReporter = {
-            reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
-            check: {
-                emitWarning: false,
-                global: {
-                    statements: codeCoverageSuccessPercentage,
-                    branches: codeCoverageSuccessPercentage,
-                    functions: codeCoverageSuccessPercentage,
-                    lines: codeCoverageSuccessPercentage,
-                },
-            },
-        };
-    }
+    utils.logit(
+        "config overrides for karma (and codeCoverageSuccessPercentage, if exists):",
+        overrides,
+        codeCoverageSuccessPercentage
+    );
 
-    utils.logit("config overrides for karma:", overrides);
-
-    return startKarmaCoverageRun(overrides, outFile);
+    return startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage);
 }
 
 if (require.main === module) {
