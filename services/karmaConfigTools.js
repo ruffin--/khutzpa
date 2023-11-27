@@ -49,8 +49,16 @@ const overridesForCoverage = {
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
+    // coverageReporter: {
+    //     reporters: [
+    //         { type: "text-summary" },
+    //         { type: "html", dir: "./coverage/", subdir: "Chrome", file: "index.html" },
+    //     ],
+    // },
     coverageReporter: {
-        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+        dir: "coverage",
+        subdir: "report",
+        // Would output the results into: .'/coverage/report/'
     },
 };
 
@@ -75,8 +83,13 @@ const overridesForMochaTestingRun = {
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
+    // coverageReporter: {
+    //     reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+    // },
     coverageReporter: {
-        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+        dir: "coverage",
+        subdir: "report",
+        // Would output the results into: .'/coverage/report/'
     },
 };
 
@@ -113,6 +126,11 @@ const createKarmaConfig = function (overrides) {
 
         // list of files / patterns to exclude
         exclude: ["**/node_modules/**/"],
+
+        // https://karma-runner.github.io/6.4/config/configuration-file.html#colors
+        // though with Istanbul see also
+        // https://github.com/karma-runner/karma-coverage/issues/35#issuecomment-338304211
+        colors: false,
 
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
