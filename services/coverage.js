@@ -65,11 +65,18 @@ function startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage
                         // TODO: This is a dangerous default once we support other browsers.
                         var coverageSubDir = "Chrome";
                         if (parsedKarmaConfig && parsedKarmaConfig.coverageReporter) {
-                            coverageDirName =
-                                parsedKarmaConfig.coverageReporter.dir || coverageDir;
-                            coverageSubDir =
-                                parsedKarmaConfig.coverageReporter.subdir ||
-                                coverageSubDir;
+                            // covereporter can have an array of reporters instead of one.
+                            // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md#reporters
+                            var htmlReporterInfo = parsedKarmaConfig.coverageReporter;
+                            if (Array.isArray(htmlReporterInfo.reporters)) {
+                                htmlReporterInfo =
+                                    htmlReporterInfo.reporters.find(
+                                        (x) => x.type === "html"
+                                    ) || htmlReporterInfo;
+                            }
+
+                            coverageDirName = htmlReporterInfo.dir || coverageDir;
+                            coverageSubDir = htmlReporterInfo.subdir || coverageSubDir;
                         }
 
                         var coverageDir = nodePath.join(

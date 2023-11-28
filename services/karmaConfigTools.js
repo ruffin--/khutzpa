@@ -58,8 +58,14 @@ const overridesForCoverage = {
     // This new default, below, sends them to the less chatty...
     // ./homeDir/coverage/Chrome/index.html
     coverageReporter: {
-        dir: "coverage",
-        subdir: "Chrome", // See coverage.js' startKarmaCoverageRun for notes on when we support more browsers
+        reporters: [
+            { type: "text-summary" },
+            {
+                type: "html",
+                dir: "coverage",
+                subdir: "Chrome", // See coverage.js' startKarmaCoverageRun for notes on when we support more browsers
+            },
+        ],
     },
 };
 
