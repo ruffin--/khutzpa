@@ -1,13 +1,14 @@
 {
     "name": "khutzpa",
-    "version": "0.0.1-alpha.16",
+    "version": "0.0.1-alpha.17",
     "description": "Node powered, cross-platform, drop-in replacement for Chutzpah.exe",
     "main": "index.js",
     "bin": {
         "khutzpa": "index.js"
     },
     "scripts": {
-        "test": "node ./tests/jsonReaderTests.js"
+        "test": "node ./index.js ./tests/fakeSite",
+        "testOpenInBrowser": "node ./index.js ./tests/fakeSite /openInBrowser"
     },
     "repository": {
         "type": "git",
@@ -37,6 +38,7 @@
         "karma-mocha-reporter": "^2.2.5",
         "karma-trx-reporter": "^0.4.3",
         "minimatch": "^5.1.0",
+        "portscanner": "^2.2.0",
         "prompt-sync": "^4.2.0"
     },
     "engines": {

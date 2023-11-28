@@ -2,6 +2,7 @@
 
 const prompt = require("prompt-sync")({ sigint: true });
 const fs = require("fs");
+const portscanner = require("portscanner");
 
 const chutzpahConfigReader = require("./services/chutzpahReader");
 const specRunner = require("./services/runJasmineSpecs");
@@ -44,7 +45,26 @@ khutzpa /path/to/root/directory /{command}
     process.exit(846); // "bad"
 }
 
-function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
+function findPortNotInUseAsync() {
+    return new Promise((resolve, reject) => {
+        portscanner.findAPortNotInUse(3000, 3100, "127.0.0.1", function (error, port) {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(port);
+            }
+        });
+    });
+}
+
+// Note that for some actionTypes we'll do a walk to find all the configs
+// first, but the default, eg, is to take the startingFilePath and look for
+// the [single] closest Chutzpah.json file with no QA in this method for
+// that selection.
+// Note that this method DOES call chutzpahConfigReader.getConfigInfo to
+// get contents for each config [whether they're from a walk or are the closest
+// to the file given].
+function runCommandAsync(startingFilePath, actionType, args) {
     var fnAction = () => {
         console.error("no action given: " + actionType);
     };
@@ -59,33 +79,56 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
 
     switch (actionType) {
         case actionTypes.OPEN_IN_BROWSER:
-            utils.debugLog("open in browser");
+            utils.logit("open in browser");
 
-            fnAction = function (configInfo) {
-                var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+            fnAction = function (khutzpaConfigInfo) {
+                var allFiles = khutzpaConfigInfo.allRefFilePaths.concat(
+                    khutzpaConfigInfo.specFiles
+                );
                 var root = findTheRoot(
                     allFiles.filter((x) => !x.toLowerCase().startsWith("http"))
                 );
 
-                return specRunner.createSpecHtml(configInfo, false, root).then(
-                    (results) => {
-                        var serverApp = server.startRunner(root, results.runnerHtml);
+                return findPortNotInUseAsync().then(
+                    (expressPort) => {
+                        return specRunner
+                            .createSpecHtml(khutzpaConfigInfo, false, root)
+                            .then(
+                                (results) => {
+                                    var serverApp = server.startRunner(
+                                        root,
+                                        results.runnerHtml
+                                    );
 
-                        serverApp.listen(expressPort, function () {
-                            utils.debugLog(
-                                `Example app listening on port ${expressPort}!`
+                                    serverApp.listen(expressPort, function () {
+                                        utils.logit(
+                                            `Example app listening on port ${expressPort}!`
+                                        );
+                                    });
+
+                                    // Yes, strangely random has to be true to use a specific seed value
+                                    // (making the order, um, random in a specific way? Using a specific
+                                    // "random" seed? It's weird).
+                                    var parsedSeed = parseInt(khutzpaConfigInfo.seed, 10);
+                                    var querystring = isNaN(parsedSeed)
+                                        ? `random=${!!khutzpaConfigInfo.random}`
+                                        : `random=true&seed=${parsedSeed}`;
+
+                                    var runnerUrl = `http://localhost:${expressPort}/runner?${querystring}`;
+                                    urlOpener.openUrl(runnerUrl);
+
+                                    // this prevents the process.exit call.
+                                    // TODO: This is an ugly hack. Do better.
+                                    return undefined;
+                                },
+                                function (err) {
+                                    console.error(err);
+                                }
                             );
-                        });
-
-                        var runnerUrl = `http://localhost:${expressPort}/runner?random=false`;
-                        urlOpener.openUrl(runnerUrl);
-
-                        // this prevents the process.exit call.
-                        // TODO: This is an ugly hack. Do better.
-                        return undefined;
                     },
-                    function (err) {
-                        console.error(err);
+                    (error) => {
+                        console.error("Unable to find an open port", error);
+                        throw "Unable to find an open port";
                     }
                 );
             };
@@ -119,7 +162,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
             runEachPromise = false;
             break;
 
-        case actionTypes.RUN_ONE_IN_KARMA:
+        case actionTypes.DEFAULT_RUN_ONE_IN_KARMA:
             // note that this (and other walk-less actions) uses
             // chutzpahConfigLocs = [startingFilePath];
             // instead of the results of a walk.
@@ -160,6 +203,7 @@ function cmdCallHandler(startingFilePath, expressPort, actionType, args) {
     }
 
     utils.debugLog("fnAction is set");
+
     if (runEachPromise) {
         return Promise.all(
             chutzpahConfigLocs.map(function (chutzpahSearchStart) {
@@ -189,7 +233,7 @@ var actionTypes = {
     FIND_ALL_CHUTZPAHS: 4,
     WALK_ALL_RUN_ONE: 5,
     PRINT_USAGE: 6,
-    RUN_ONE_IN_KARMA: 7, // the default
+    DEFAULT_RUN_ONE_IN_KARMA: 7,
 };
 
 if (require.main === module) {
@@ -197,7 +241,7 @@ if (require.main === module) {
         // First two arguments for a node process are always "Node"
         // and the path to this app. Trash those.
         const myArgs = process.argv.slice(2);
-        utils.debugLog("myArgs: ", myArgs);
+        utils.logit("myArgs: ", myArgs);
 
         if (myArgs.indexOf("/version") > -1) {
             return console.log(packageInfo.version);
@@ -220,14 +264,11 @@ if (require.main === module) {
                     ? actionTypes.WALK_ALL_RUN_ONE
                     : myArgs.indexOf("/version") > -1
                     ? actionTypes.PRINT_USAGE
-                    : actionTypes.RUN_ONE_IN_KARMA;
+                    : actionTypes.DEFAULT_RUN_ONE_IN_KARMA;
 
-            utils.debugLog(command);
+            utils.logit(command);
 
-            var expressPort = 3000;
-            cmdCallHandler(filePath, expressPort, command, myArgs).then(function (
-                resultsIfAny
-            ) {
+            runCommandAsync(filePath, command, myArgs).then(function (resultsIfAny) {
                 utils.debugLog("done");
 
                 if (
@@ -252,4 +293,4 @@ if (require.main === module) {
     }
 }
 
-module.exports = cmdCallHandler;
+module.exports = runCommandAsync;

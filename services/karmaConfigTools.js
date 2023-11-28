@@ -49,8 +49,23 @@ const overridesForCoverage = {
 
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
+    // coverageReporter: {
+    //     reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+    // },
+    // The default subdir value is kinda chatty, eg.
+    // ./homeDir/coverage/Chrome 118.0.0.0 (Mac OS 10.15.7)/index.html
+    //
+    // This new default, below, sends them to the less chatty...
+    // ./homeDir/coverage/Chrome/index.html
     coverageReporter: {
-        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+        reporters: [
+            { type: "text-summary" },
+            {
+                type: "html",
+                dir: "coverage",
+                subdir: "Chrome", // See coverage.js' startKarmaCoverageRun for notes on when we support more browsers
+            },
+        ],
     },
 };
 
@@ -76,16 +91,16 @@ const overridesForMochaTestingRun = {
     // optionally, configure the reporter
     // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md
     coverageReporter: {
-        reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
+        reporters: [{ type: "text-summary" }],
     },
 };
 
-const createKarmaConfig = function (overrides) {
+const createKarmaConfig = function (overrides, codeCoverageSuccessPercentage) {
     if (!overrides) {
         overrides = overridesForCoverage;
     }
 
-    utils.debugLog("x:logLevel,5", overrides);
+    utils.logit("x:logLevel,5", overrides);
 
     var baseConfig = {
         // Remember that if any of your karma-* plugins are scoped or otherwise
@@ -103,7 +118,8 @@ const createKarmaConfig = function (overrides) {
         // ],
 
         // jasmine: {
-        //     random: false,
+        //     random: true,
+        //     seed: 32725,
         // },
 
         // frameworks to use
@@ -112,6 +128,11 @@ const createKarmaConfig = function (overrides) {
 
         // list of files / patterns to exclude
         exclude: ["**/node_modules/**/"],
+
+        // https://karma-runner.github.io/6.4/config/configuration-file.html#colors
+        // though with Istanbul see also
+        // https://github.com/karma-runner/karma-coverage/issues/35#issuecomment-338304211
+        colors: false,
 
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
@@ -155,6 +176,46 @@ const createKarmaConfig = function (overrides) {
             terminal: true,
         },
     };
+
+    //===========================================
+    //#region codeCoverage hack
+    //===========================================
+    // Object.assign really isn't granular enough for what we want to do here.
+    // TODO: Write an object spider that'll merge more elegantly.
+    // Until then, we'll stodgily check codeCoverageSuccessPercentage and handle as a one-off.
+    if (
+        codeCoverageSuccessPercentage &&
+        !(overrides.coverageReporter && overrides.coverageReporter.check)
+    ) {
+        var coverageOverrideValues = {
+            emitWarning: false,
+            global: {
+                statements: codeCoverageSuccessPercentage,
+                branches: codeCoverageSuccessPercentage,
+                functions: codeCoverageSuccessPercentage,
+                lines: codeCoverageSuccessPercentage,
+            },
+        };
+
+        // What does check do? \/\/\/
+        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
+        if (overrides.coverageReporter) {
+            // We might want to check for global, etc, but see TODO, above. We're merge objects
+            // better later.
+            overrides.coverageReporter.check = coverageOverrideValues;
+        } else {
+            overrides.coverageReporter = {
+                reporters: [
+                    { type: "text-summary" },
+                    { type: "html", dir: "./coverage/" },
+                ],
+                check: coverageOverrideValues,
+            };
+        }
+    }
+    //===========================================
+    //#endregion codeCoverage hack
+    //===========================================
 
     return Object.assign({}, baseConfig, overrides);
 };

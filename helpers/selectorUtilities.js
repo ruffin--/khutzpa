@@ -21,14 +21,22 @@ const utils = require("./utils");
 // So let's cheat and check both.
 function hasRelativeOrFullPathMatch(fullPath, home, glob) {
     var relative = nodePath.relative(home, fullPath);
-    var valueForDebugging = minimatch(relative, glob) || minimatch(fullPath, glob);
-    return valueForDebugging;
+
+    var valueForMouseoverIdeDebugging = {
+        matchFound: minimatch(relative, glob) || minimatch(fullPath, glob),
+        fullPath,
+        relative,
+        glob,
+    };
+
+    return valueForMouseoverIdeDebugging.matchFound;
 }
 
 function minimatchEngine(selector, fullPaths, home, selectorName) {
     var allMatches = [];
 
     selectorName = selectorName || "Includes";
+    var thisSelector = selector[selectorName];
 
     // TODO: You may also need to solve the asterisk interpretation issue.
     // https://github.com/mmanela/chutzpah/wiki/tests-setting#example
@@ -51,7 +59,7 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
     // > Back-slashes in patterns will always be interpreted as escape characters, not path separators.
     // > ...
     // > So just always use / in patterns.
-    selector[selectorName].forEach(function (globPattern) {
+    thisSelector.forEach(function (globPattern) {
         var backslashCleanedPattern = globPattern.replace(/\\/g, "/");
 
         var matches = fullPaths.filter((singleFullPath) =>
@@ -69,13 +77,13 @@ function minimatchEngine(selector, fullPaths, home, selectorName) {
 
 var findAllIncludes = function (selector, fullPaths, home) {
     normalizeIncludeVsIncludes(selector);
-    utils.debugLog("includes", selector.Includes);
+    utils.logit("includes", selector.Includes);
     return minimatchEngine(selector, fullPaths, home, "Includes");
 };
 
 var removeAllExcludes = function (selector, fullPaths, home) {
     normalizeExcludeVsExcludes(selector);
-    utils.debugLog("Excludes", selector.Excludes);
+    utils.logit("Excludes", selector.Excludes);
 
     var excludes = minimatchEngine(selector, fullPaths, home, "Excludes");
     return fullPaths.filter((includePath) => excludes.indexOf(includePath) === -1);

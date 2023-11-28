@@ -13,14 +13,39 @@ const winDrivePattern = new RegExp(/^[a-z]:\\/, "i");
 let karmaRunIds = [];
 let karmaRunResults = {};
 
-function startKarma(karmaRunId, overrides) {
+function addIfNotExists(array, newElements) {
+    // Should probably clone `array` and call it "mergeArrays" or something
+    if (!Array.isArray(array)) {
+        array = [];
+    }
+
+    if (!Array.isArray(newElements)) {
+        newElements = [newElements];
+    }
+
+    newElements.forEach((x) => {
+        if (array.indexOf(x) === -1) {
+            array.push(x);
+        }
+    });
+
+    return array;
+}
+
+function startKarmaAsync(karmaRunId, overrides) {
     return new Promise(function (resolve, reject) {
         overrides = Object.assign(
             {},
             karmaConfigTools.overridesForMochaTestingRun,
             overrides
         );
+
+        // ##############################################################
+        // This is where we make the karmaConfig
+        // ##############################################################
         var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
+
+        utils.debugLog("karma config", karmaConfig);
 
         karma.config
             .parseConfig(
@@ -42,7 +67,7 @@ function startKarma(karmaRunId, overrides) {
                         function doneCallback(exitCode) {
                             // 0 is success/no test failure.
                             // Anything else is bad. Usually 1 afaict.
-                            utils.debugLog("Wrapped karma has exited with " + exitCode);
+                            utils.logit("Wrapped karma has exited with " + exitCode);
                             karmaRunResults[karmaRunId] = exitCode;
 
                             resolve(exitCode);
@@ -52,23 +77,25 @@ function startKarma(karmaRunId, overrides) {
                     });
 
                     server.start().then(function (x) {
-                        utils.debugLog("server started", x);
+                        utils.logit("server started", x);
                     });
                 },
                 (rejectReason) => {
-                    utils.debugLog("Error", rejectReason);
+                    utils.logit("Error", rejectReason);
                     throw rejectReason;
                 }
             );
     });
 }
 
-function runWrappedKarma(configInfo, karmaRunId) {
+// This puts together overrides for the karma run, but doesn't actually call it.
+// It sends those overrides over by calling startKarmaAsync.
+function runWrappedKarma(khutzpaConfigInfo, karmaRunId) {
     // The config object gives back a collection of all refs (ie, required
     // files that aren't tests) in allRefFilePaths and the tests in specFiles.
     // karma's files property wants everything... I think...
     // So first let's put the two together.
-    var allFiles = configInfo.allRefFilePaths.concat(configInfo.specFiles);
+    var allFiles = khutzpaConfigInfo.allRefFilePaths.concat(khutzpaConfigInfo.specFiles);
 
     // Now we need an object literal with each file to cover to tell karma
     // to use the coverage preprocessor to, um, preprocess those files.
@@ -76,13 +103,13 @@ function runWrappedKarma(configInfo, karmaRunId) {
     // (if not efficient -- though I suspect this means karma is doing less
     // lifting and it doesn't matter).
     var preprocessObj = {};
-    configInfo.coverageFiles.forEach((fileToCover) => {
+    khutzpaConfigInfo.coverageFiles.forEach((fileToCover) => {
         preprocessObj[fileToCover] = ["coverage"];
     });
 
     var overrides = {
         port: 9876,
-        basePath: configInfo.jsonFileParent,
+        basePath: khutzpaConfigInfo.jsonFileParent,
         // files: [{ pattern: "**/*.js", nocache: true }], // NOTE: nocache true breaks the coverage reporter.
 
         // string-only is equivalent to...
@@ -94,15 +121,23 @@ function runWrappedKarma(configInfo, karmaRunId) {
         preprocessors: preprocessObj,
     };
 
+    if (parseInt(khutzpaConfigInfo.seed) !== NaN || khutzpaConfigInfo.random) {
+        if (!overrides.jasmine) {
+            overrides.jasmine = {};
+        }
+        overrides.jasmine.seed = khutzpaConfigInfo.seed;
+        overrides.jasmine.random = khutzpaConfigInfo.random;
+    }
+
     // if we only have one test file, no reason to do any coverage.
-    if (configInfo.singleTestFile) {
+    if (khutzpaConfigInfo.singleTestFile) {
         overrides.reporters = ["mocha"];
     } else {
-        // this is actually the default, but let's be explicit.
-        overrides.reports = ["coverage", "mocha"];
+        // this is actually the default in karmaConfigTools, but let's be explicit.
+        overrides.reporters = ["coverage", "mocha"];
 
         var codeCoverageSuccessPercentage = parseInt(
-            configInfo.codeCoverageSuccessPercentage,
+            khutzpaConfigInfo.codeCoverageSuccessPercentage,
             10
         );
 
@@ -121,44 +156,46 @@ function runWrappedKarma(configInfo, karmaRunId) {
                 },
             };
         }
-
-        // This creates a file needed for TFS integration.
-        // More info:
-        // https://stackoverflow.com/q/38952063/1028230
-        // https://github.com/hatchteam/karma-trx-reporter
-        // TODO: Instead of Object.assign, consider a merge that merges matching
-        // (by prop name) arrays?
-        // This overrides where you're really setting something is getting wack.
-        if (configInfo.produceTrx) {
-            overrides.reporters = ["coverage", "mocha", "trx"];
-
-            let trxPath = configInfo.trxPath || "khutzpa-test-results.trx";
-
-            // TODO: The second check is problematic b/c we *accept* "/Relative/Path/file.js"
-            // in References and Tests. I'm not sure how to check for *NIX full paths without
-            // changing that setup or having a leading "/" mean different things for different
-            // config properties (like I do now (20230804), here).
-            // Check for the existence of the parent of the trxPath here? If not exists, join?
-            if (!winDrivePattern.test(trxPath) && !trxPath.startsWith("/")) {
-                trxPath = nodePath.join(configInfo.jsonFileParent, trxPath);
-            }
-
-            overrides.trxReporter = {
-                outputFile: trxPath,
-                shortTestName: false,
-            };
-        }
     }
 
-    utils.debugLog("config overrides for karma:", overrides);
-    return startKarma(karmaRunId, overrides);
+    // This creates a file needed for TFS integration.
+    // More info:
+    // https://stackoverflow.com/q/38952063/1028230
+    // https://github.com/hatchteam/karma-trx-reporter
+    // TODO: Instead of Object.assign, consider a merge that merges matching
+    // (by prop name) arrays?
+    // This overrides where you're really setting something is getting wack.
+    if (khutzpaConfigInfo.produceTrx) {
+        // It's already got mocha in it as of 20230906, but let's pretend that might change
+        // and be defensive.
+        overrides.reporters = addIfNotExists(overrides.reporters, ["mocha", "trx"]);
+
+        let trxPath = khutzpaConfigInfo.trxPath || "khutzpa-test-results.trx";
+
+        // TODO: The second check is problematic b/c we *accept* "/Relative/Path/file.js"
+        // in References and Tests. I'm not sure how to check for *NIX full paths without
+        // changing that setup or having a leading "/" mean different things for different
+        // config properties (like I do now (20230804), here).
+        // Check for the existence of the parent of the trxPath here? If not exists, join?
+        if (!winDrivePattern.test(trxPath) && !trxPath.startsWith("/")) {
+            trxPath = nodePath.join(khutzpaConfigInfo.jsonFileParent, trxPath);
+        }
+
+        overrides.trxReporter = {
+            outputFile: trxPath,
+            shortTestName: false,
+        };
+    }
+
+    utils.logit("config overrides for karma:", overrides);
+    return startKarmaAsync(karmaRunId, overrides);
 }
 
 if (require.main === module) {
     // First two are always "Node" and the path to what was called.
     // Trash those.
     const myArgs = process.argv.slice(2);
-    utils.debugLog("myArgs: ", myArgs);
+    utils.logit("myArgs: ", myArgs);
 
     var karmaRunId = "unique value";
     karmaRunIds.push(karmaRunId);
@@ -185,7 +222,7 @@ if (require.main === module) {
     };
 
     runWrappedKarma(configResult, karmaRunId).then(function (exitCode) {
-        utils.debugLog("done (Promises probably outstanding)", exitCode);
+        utils.logit("done (Promises probably outstanding)", exitCode);
     });
 }
 

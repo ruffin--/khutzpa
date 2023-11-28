@@ -31,10 +31,13 @@ function copyCoverageFiles(coverageDir, newIndexLoc) {
     fs.copyFileSync(oldIndexLoc, newIndexLoc);
 }
 
-function startKarmaCoverageRun(overrides, outFile) {
+function startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage) {
     overrides = Object.assign({}, karmaConfigTools.overridesForCoverage, overrides);
-    var karmaConfig = karmaConfigTools.createKarmaConfig(overrides);
-    utils.debugLog(karmaConfig);
+    var karmaConfig = karmaConfigTools.createKarmaConfig(
+        overrides,
+        codeCoverageSuccessPercentage
+    );
+    utils.logit(karmaConfig);
 
     return new Promise(function (resolve, reject) {
         karma.config
@@ -55,22 +58,47 @@ function startKarmaCoverageRun(overrides, outFile) {
                     const server = new Server(parsedKarmaConfig, function doneCallback(
                         exitCode
                     ) {
-                        utils.debugLog("Karma has exited with " + exitCode);
-                        utils.debugLog(arguments);
+                        utils.logit("Karma has exited with " + exitCode);
+                        utils.logit(arguments);
 
-                        var coverageDir = nodePath.join(karmaConfig.basePath, "coverage");
+                        var coverageDirName = "coverage";
+                        // TODO: This is a dangerous default once we support other browsers.
+                        var coverageSubDir = "Chrome";
+                        if (parsedKarmaConfig && parsedKarmaConfig.coverageReporter) {
+                            // covereporter can have an array of reporters instead of one.
+                            // https://github.com/karma-runner/karma-coverage/blob/HEAD/docs/configuration.md#reporters
+                            var htmlReporterInfo = parsedKarmaConfig.coverageReporter;
+                            if (Array.isArray(htmlReporterInfo.reporters)) {
+                                htmlReporterInfo =
+                                    htmlReporterInfo.reporters.find(
+                                        (x) => x.type === "html"
+                                    ) || htmlReporterInfo;
+                            }
+
+                            coverageDirName = htmlReporterInfo.dir || coverageDir;
+                            coverageSubDir = htmlReporterInfo.subdir || coverageSubDir;
+                        }
+
+                        var coverageDir = nodePath.join(
+                            karmaConfig.basePath,
+                            coverageDirName
+                        );
                         fs.readdir(coverageDir, function (err, list) {
                             var latestCoverageDir = "";
                             var latestTime = 0;
-                            utils.debugLog(list, err);
+                            utils.logit(list, err);
 
                             list.forEach((file) => {
-                                // TODO: Change when we have other browsers, natch.
-                                if (file.indexOf("Chrome") > -1) {
+                                // TODO: Keep in mind that subdir can be configured by a function.
+                                // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#subdir
+                                // NOTE: coverageSubDir value can be anywhere in file... which allows the default "Chrome" to match
+                                // the wacky default folder name construction like "Chrome 118.0.0.0 (Mac OS 10.15.7)"
+                                // -- TODO: ^^^^ as long as we only use Chrome.
+                                if (file.indexOf(coverageSubDir) > -1) {
                                     var fullPath = nodePath.join(coverageDir, file);
                                     var statsObj = fs.statSync(fullPath);
                                     if (statsObj.isDirectory()) {
-                                        utils.debugLog(`
+                                        utils.logit(`
 path: ${fullPath}
 last accessed: ${statsObj.atimeMs},
 last changed:  ${statsObj.ctimeMs},
@@ -86,7 +114,7 @@ last modified: ${statsObj.mtimeMs},
                             });
 
                             if (latestCoverageDir) {
-                                utils.debugLog(latestCoverageDir);
+                                utils.logit(latestCoverageDir);
 
                                 if (outFile) {
                                     copyCoverageFiles(latestCoverageDir, outFile);
@@ -154,25 +182,13 @@ function runKarmaCoverage(configInfo, outFile) {
         10
     );
 
-    if (codeCoverageSuccessPercentage) {
-        // https://github.com/karma-runner/karma-coverage/blob/master/docs/configuration.md#check
-        overrides.coverageReporter = {
-            reporters: [{ type: "text-summary" }, { type: "html", dir: "./coverage/" }],
-            check: {
-                emitWarning: false,
-                global: {
-                    statements: codeCoverageSuccessPercentage,
-                    branches: codeCoverageSuccessPercentage,
-                    functions: codeCoverageSuccessPercentage,
-                    lines: codeCoverageSuccessPercentage,
-                },
-            },
-        };
-    }
+    utils.logit(
+        "config overrides for karma (and codeCoverageSuccessPercentage, if exists):",
+        overrides,
+        codeCoverageSuccessPercentage
+    );
 
-    utils.debugLog("config overrides for karma:", overrides);
-
-    return startKarmaCoverageRun(overrides, outFile);
+    return startKarmaCoverageRun(overrides, outFile, codeCoverageSuccessPercentage);
 }
 
 if (require.main === module) {

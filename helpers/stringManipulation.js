@@ -25,7 +25,7 @@ function removeLeadingSlashes(stringCollection) {
 // TODO: So, like, um, don't do \\\" please.
 function matchesCharacterAtLocUnescaped(needle, haystack, loc) {
     // if (needle !== `"`) {
-    //     utils.debugLog(loc + ' :: ' + needle + ' :: ' + haystack[loc]);
+    //     utils.logit(loc + ' :: ' + needle + ' :: ' + haystack[loc]);
     // }
     return haystack[loc] === needle && (loc === 0 || haystack[loc - 1] !== "\\");
 }
@@ -34,13 +34,13 @@ function stripInlineComments(payload) {
     var i = 1; // 1 is intentional.
 
     function increment() {
-        // utils.debugLog(i + ' :: ' + payload[i]);
+        // utils.logit(i + ' :: ' + payload[i]);
         i++;
     }
 
     function addToRanges(start, stop) {
         var checkedStop = stop + 1 === payload.length ? stop : stop + 1;
-        // utils.debugLog(payload.substring(start, checkedStop));
+        // utils.logit(payload.substring(start, checkedStop));
         ranges.push([start, checkedStop]);
     }
 
