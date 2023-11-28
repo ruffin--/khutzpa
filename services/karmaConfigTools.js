@@ -209,15 +209,7 @@ const createKarmaConfig = function (overrides, codeCoverageSuccessPercentage) {
                     { type: "text-summary" },
                     { type: "html", dir: "./coverage/" },
                 ],
-                check: {
-                    emitWarning: false,
-                    global: {
-                        statements: codeCoverageSuccessPercentage,
-                        branches: codeCoverageSuccessPercentage,
-                        functions: codeCoverageSuccessPercentage,
-                        lines: codeCoverageSuccessPercentage,
-                    },
-                },
+                check: coverageOverrideValues,
             };
         }
     }
